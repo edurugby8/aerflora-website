@@ -10,7 +10,7 @@
   --font-serif: 'Instrument Serif', 'Times New Roman', serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
   --gutter: clamp(16px, 3vw, 40px);
-  --track: 700vh;
+  --track: 820vh;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -194,7 +194,7 @@ p, h1 { margin: 0; }
 
 /* ------------------------------------------------------------- small screens */
 @media (max-width: 720px) {
-  :root { --track: 620vh; }
+  :root { --track: 700vh; }
   .nav { grid-template-columns: 1fr auto; row-gap: 10px; }
   .nav-flight { grid-column: 1; }
   .nav-row { grid-column: 2; grid-row: 1; }
