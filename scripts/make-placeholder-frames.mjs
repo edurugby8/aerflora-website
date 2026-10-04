@@ -59,7 +59,7 @@ const D = 19; // bulkhead / door plane
 const FLOOR = -1.05;
 const HAZE = hex('#f1e9dc');
 const PROFILE = [ // half cross-section of the fuselage (x, y), floor to ceiling centre
-  [1.75, FLOOR], [1.78, 0.2], [1.62, 0.7], [1.25, 1.02], [0.85, 1.16], [0, 1.2],
+  [1.72, FLOOR], [1.8, -0.5], [1.83, 0.1], [1.78, 0.55], [1.6, 0.9], [1.2, 1.12], [0.6, 1.2], [0, 1.22],
 ];
 const DOOR_W = 0.56; // half width of the door opening
 const DOOR_TOP = 0.8;
@@ -109,17 +109,18 @@ function cluster(cx, cy, cz, spread, count, kinds) {
 
 for (const z of ROWS) {
   for (const side of [-1, 1]) {
-    // seats (two per side) – stored as items so they are depth sorted
-    add({ kind: 'seat', side, x0: 0.5, x1: 1.08, z });
-    add({ kind: 'seat', side, x0: 1.12, x1: 1.7, z });
+    // 3+3 seats – stored as items so they are depth sorted
+    add({ kind: 'seat', side, x0: 0.45, x1: 0.86, z, aisle: true });
+    add({ kind: 'seat', side, x0: 0.88, x1: 1.29, z });
+    add({ kind: 'seat', side, x0: 1.31, x1: 1.7, z });
     // flowers spilling over the seat backs
     cluster(side * 1.05, 0.2, z, { x: 0.6, y: 0.16, z: 0.22 }, 26, ['rose', 'rose', 'orchid', 'hydra', 'leaf', 'leaf', 'leaf', 'white']);
     // aisle edge ferns and low flowers
     cluster(side * 0.58, -0.75, z + 0.4, { x: 0.12, y: 0.3, z: 0.45 }, 12, ['fern', 'leaf', 'leaf', 'rose', 'white']);
     // overhead bins / upper wall
-    cluster(side * 1.35, 0.85, z + 0.3, { x: 0.25, y: 0.16, z: 0.5 }, 20, ['rose', 'white', 'hydra', 'leaf', 'leaf', 'orchid']);
+    cluster(side * 0.98, 0.84, z + 0.3, { x: 0.07, y: 0.17, z: 0.5 }, 18, ['rose', 'white', 'hydra', 'leaf', 'leaf', 'orchid']);
     // hanging wisteria
-    for (let k = 0; k < 3; k++) add({ kind: 'wisteria', x: side * rand(0.55, 1.1), y: rand(0.98, 1.1), z: z + rand(0, ROW_PITCH), len: rand(0.25, 0.55), seed: Math.floor(R() * 1e9), tone: R() });
+    for (let k = 0; k < 3; k++) add({ kind: 'wisteria', x: side * rand(0.5, 0.95), y: rand(1.05, 1.15), z: z + rand(0, ROW_PITCH), len: rand(0.25, 0.55), seed: Math.floor(R() * 1e9), tone: R() });
   }
   // ceiling garland across the aisle
   for (let k = 0; k < 14; k++) {
@@ -147,10 +148,10 @@ for (let k = 0; k < 60; k++) {
 }
 // flower walls framing the door
 for (const side of [-1, 1]) {
-  cluster(side * 0.95, 0.0, D - 0.25, { x: 0.35, y: 1.05, z: 0.2 }, 260, ['rose', 'white', 'orchid', 'hydra', 'leaf', 'leaf', 'fern']);
+  cluster(side * 1.0, 0.0, D - 0.25, { x: 0.35, y: 1.05, z: 0.2 }, 260, ['rose', 'white', 'orchid', 'hydra', 'leaf', 'leaf', 'fern']);
   cluster(side * 0.7, -0.55, D - 0.5, { x: 0.12, y: 0.45, z: 0.35 }, 60, ['white', 'rose', 'leaf', 'fern']);
 }
-cluster(0, 1.0, D - 0.2, { x: 0.9, y: 0.14, z: 0.15 }, 110, ['rose', 'white', 'leaf', 'hydra']);
+cluster(0, 1.12, D - 0.2, { x: 0.95, y: 0.08, z: 0.15 }, 90, ['rose', 'white', 'leaf', 'hydra']);
 
 // petals (deterministic motion)
 const petals = Array.from({ length: 380 }, (_, k) => ({
@@ -205,100 +206,16 @@ function renderFrame(ctx, W, H, i) {
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   drawSky(ctx, proj, F, open);
 
-  // --- door leaves (behind the bulkhead plane)
-  for (const side of [-1, 1]) {
-    const hx = side * DOOR_W;
-    const fx = hx - side * DOOR_W * Math.cos(openA);
-    const fz = D + DOOR_W * Math.sin(openA);
-    const pts = [[hx, FLOOR, D], [hx, DOOR_TOP, D], [fx, DOOR_TOP, fz], [fx, FLOOR, fz]].map((p) => proj(...p));
-    if (pts.some((p) => !p)) continue;
-    const lit = 0.06 + 0.12 * Math.sin(openA);
-    let col = mix(shade(P.door, lit), HAZE, fog(D - cam.z) * 0.6);
-    ctx.fillStyle = rgba(col);
-    poly(ctx, pts); ctx.fill();
-    // panel inset & porthole
-    const inset = (u, v) => {
-      const x = lerp(hx, fx, u), z = lerp(D, fz, u), y = lerp(FLOOR, DOOR_TOP, v);
-      return proj(x, y, z);
-    };
-    ctx.strokeStyle = rgba(shade(col, -0.18), 0.6); ctx.lineWidth = Math.max(1, pts[0].s * 0.006);
-    poly(ctx, [inset(0.12, 0.06), inset(0.12, 0.55), inset(0.88, 0.55), inset(0.88, 0.06)]); ctx.stroke();
-    const port = [];
-    for (let k = 0; k < 28; k++) {
-      const a = (k / 28) * Math.PI * 2;
-      port.push(inset(0.5 + Math.cos(a) * 0.3, 0.74 + Math.sin(a) * 0.092));
-    }
-    if (port.every(Boolean)) {
-      ctx.fillStyle = rgba(shade(col, 0.55)); poly(ctx, port); ctx.fill();
-      ctx.strokeStyle = rgba(shade(col, -0.25), 0.8); ctx.lineWidth = Math.max(1, pts[0].s * 0.012); ctx.stroke();
-    }
-    const h1 = inset(side > 0 ? 0.9 : 0.9, 0.48), h2 = inset(0.9, 0.53);
-    if (h1 && h2) { ctx.strokeStyle = '#c8cbc4'; ctx.lineWidth = Math.max(1.5, pts[0].s * 0.02); ctx.beginPath(); ctx.moveTo(h1.x, h1.y); ctx.lineTo(h2.x, h2.y); ctx.stroke(); }
-  }
+  // --- door leaves, the deep door surround, then the bulkhead around it
+  const fd = fog(D - cam.z);
+  drawDoorLeaves(ctx, proj, openA, fd);
+  drawDoorway(ctx, proj, fd, open);
 
-  // --- bulkhead with door opening
-  const ring = fullProfile().map(([x, y]) => proj(x, y, D));
-  if (ring.every(Boolean)) {
-    ctx.beginPath();
-    poly(ctx, ring, false);
-    const o = [[-DOOR_W, FLOOR], [-DOOR_W, DOOR_TOP - 0.08], [-DOOR_W + 0.08, DOOR_TOP], [DOOR_W - 0.08, DOOR_TOP], [DOOR_W, DOOR_TOP - 0.08], [DOOR_W, FLOOR]].map(([x, y]) => proj(x, y, D));
-    poly(ctx, o.reverse(), false);
-    ctx.fillStyle = rgba(mix(P.bulk, HAZE, fog(D - cam.z) * 0.7));
-    ctx.fill('evenodd');
-    // door frame trim
-    ctx.strokeStyle = rgba(mix(shade(P.door, -0.1), HAZE, fog(D - cam.z) * 0.6));
-    ctx.lineWidth = Math.max(2, o[0].s * 0.05);
-    poly(ctx, o); ctx.stroke();
-  }
-
-  // --- fuselage shell (far to near)
-  const prof = fullProfile();
-  const zs = [];
-  for (let z = D; z > cam.z + 0.05; z -= 0.5) zs.push(z);
-  zs.push(cam.z + 0.05);
-  for (let s = 0; s < zs.length - 1; s++) {
-    const z0 = zs[s], z1 = zs[s + 1];
-    const d = (z0 + z1) / 2 - cam.z;
-    for (let k = 0; k < prof.length - 1; k++) {
-      const [ax, ay] = prof[k], [bx, by] = prof[k + 1];
-      const q = [proj(ax, ay, z0), proj(bx, by, z0), proj(bx, by, z1), proj(ax, ay, z1)];
-      if (q.some((p) => !p)) continue;
-      const ny = (ay + by) / 2;
-      const base = ny > 0.95 ? P.ceil : P.wall;
-      const lit = ny > 0.95 ? 0.08 : ny > 0.4 ? 0.0 : -0.06;
-      ctx.fillStyle = rgba(mix(shade(base, lit), HAZE, fog(d)));
-      poly(ctx, q); ctx.fill();
-      ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1; ctx.stroke(); // hide seams
-    }
-    // floor: carpet aisle + darker sides
-    for (const [xa, xb, c] of [[-1.75, -0.42, P.floor], [-0.42, 0.42, P.carpet], [0.42, 1.75, P.floor]]) {
-      const q = [proj(xa, FLOOR, z0), proj(xb, FLOOR, z0), proj(xb, FLOOR, z1), proj(xa, FLOOR, z1)];
-      if (q.some((p) => !p)) continue;
-      ctx.fillStyle = rgba(mix(c, HAZE, fog(d) * 0.8));
-      poly(ctx, q); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.stroke();
-    }
-  }
-  // windows + daylight spill on the walls
-  for (const z of ROWS) {
-    for (const side of [-1, 1]) {
-      const wx = side * 1.77, wz = z + 0.35;
-      if (wz - cam.z < 0.15) continue;
-      const pts = [];
-      for (let k = 0; k < 32; k++) {
-        const a = (k / 32) * Math.PI * 2;
-        pts.push(proj(wx, 0.32 + Math.sin(a) * 0.23, wz + Math.cos(a) * 0.16));
-      }
-      if (pts.some((p) => !p)) continue;
-      const c = proj(wx, 0.32, wz);
-      const glow = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.s * 0.75);
-      glow.addColorStop(0, 'rgba(255,252,244,0.55)'); glow.addColorStop(1, 'rgba(255,252,244,0)');
-      ctx.fillStyle = glow; ctx.fillRect(c.x - c.s, c.y - c.s, c.s * 2, c.s * 2);
-      ctx.fillStyle = rgba(mix(hex('#e9eef0'), [255, 255, 255], 0.3));
-      poly(ctx, pts); ctx.fill();
-      ctx.strokeStyle = rgba(mix(hex('#d4cbb8'), HAZE, fog(c.d)));
-      ctx.lineWidth = Math.max(1, c.s * 0.05); ctx.stroke();
-    }
-  }
+  // --- fuselage shell, windows, overhead bins (far to near inside each)
+  drawShell(ctx, proj, cam, fog);
+  drawWindows(ctx, proj, cam, fog);
+  drawBins(ctx, proj, cam, fog);
+  if (open > 0) drawDoorSpill(ctx, proj, open);
 
   // --- interior items, painter's algorithm
   const list = [];
@@ -342,6 +259,317 @@ function renderFrame(ctx, W, H, i) {
   v.addColorStop(0, 'rgba(30,26,18,0)'); v.addColorStop(1, 'rgba(30,26,18,0.32)');
   ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
   grain(ctx, W, H, i);
+}
+
+// ---------------------------------------------------------------- cabin
+const OPEN_R = 0.14; // corner radius of the door opening
+const SILL = FLOOR + 0.05;
+const JAMB = 0.16; // depth of the door surround
+const BIN = hex('#ebe4d6');
+
+// rounded rectangle outline in a y-up plane, counter-clockwise from bottom-left
+function roundRectPts(x0, y0, x1, y1, r, n = 6, corners = [1, 1, 1, 1]) {
+  const out = [];
+  const arc = (cx, cy, a0) => {
+    for (let k = 0; k <= n; k++) { const a = a0 + (k / n) * Math.PI / 2; out.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); }
+  };
+  corners[0] ? arc(x0 + r, y0 + r, Math.PI) : out.push([x0, y0]);
+  corners[1] ? arc(x1 - r, y0 + r, 1.5 * Math.PI) : out.push([x1, y0]);
+  corners[2] ? arc(x1 - r, y1 - r, 0) : out.push([x1, y1]);
+  corners[3] ? arc(x0 + r, y1 - r, 0.5 * Math.PI) : out.push([x0, y1]);
+  return out;
+}
+const bez = (p0, c, p1, n = 6) => Array.from({ length: n + 1 }, (_, k) => {
+  const t = k / n, a = (1 - t) * (1 - t), b = 2 * (1 - t) * t, d = t * t;
+  return [a * p0[0] + b * c[0] + d * p1[0], a * p0[1] + b * c[1] + d * p1[1]];
+});
+const projAll = (proj, pts) => { const out = pts.map((p) => proj(...p)); return out.every(Boolean) ? out : null; };
+
+let panelNoise = null;
+function noisePattern(ctx) {
+  if (!panelNoise) {
+    const c = createCanvas(192, 192), g = c.getContext('2d');
+    const img = g.createImageData(192, 192), rr = rng(4242);
+    for (let k = 0; k < img.data.length; k += 4) {
+      const v = 128 + (rr() - 0.5) * 60 + Math.sin(k * 0.0007) * 10;
+      img.data[k] = img.data[k + 1] = img.data[k + 2] = v; img.data[k + 3] = 255;
+    }
+    g.putImageData(img, 0, 0); panelNoise = c;
+  }
+  return ctx.createPattern(panelNoise, 'repeat');
+}
+
+function drawDoorLeaves(ctx, proj, openA, fd) {
+  const H0 = SILL + 0.01, H1 = DOOR_TOP - 0.01, LW = DOOR_W - 0.008, T = 0.05;
+  const zH = D + JAMB;
+  for (const side of [-1, 1]) {
+    const hx = side * LW;
+    const dx = -side * Math.cos(openA), dz = Math.sin(openA); // hinge → free edge
+    const nx = side * Math.sin(openA), nz = Math.cos(openA); // outward normal
+    // local (s across from the hinge, y up, w through the thickness)
+    const L = (s, y, w = 0) => proj(hx + dx * s + nx * w * T, y, zH + dz * s + nz * w * T);
+    const outline = roundRectPts(0, H0, LW, H1, OPEN_R, 6, side > 0 ? [0, 1, 1, 0] : [1, 0, 0, 1])
+      .map(([s, y]) => [side > 0 ? LW - s : s, y]); // hinge side always rounded
+    const front = outline.map(([s, y]) => L(s, y));
+    if (front.some((p) => !p)) continue;
+    const lit = 0.03 + 0.16 * Math.sin(openA);
+    const col = mix(shade(P.door, lit), HAZE, fd * 0.6);
+    // free edge (thickness) shows as the leaf swings
+    const e = [L(LW, H0, 0), L(LW, H1, 0), L(LW, H1, 1), L(LW, H0, 1)];
+    if (e.every(Boolean) && openA > 0.02) { ctx.fillStyle = rgba(shade(col, -0.22)); poly(ctx, e); ctx.fill(); }
+    // face
+    const top = L(LW / 2, H1), bot = L(LW / 2, H0);
+    const gr = ctx.createLinearGradient(top.x, top.y, bot.x, bot.y);
+    gr.addColorStop(0, rgba(shade(col, 0.07))); gr.addColorStop(0.55, rgba(col)); gr.addColorStop(1, rgba(shade(col, -0.1)));
+    ctx.fillStyle = gr; poly(ctx, front); ctx.fill();
+    ctx.save(); poly(ctx, front); ctx.clip();
+    ctx.globalCompositeOperation = 'overlay'; ctx.globalAlpha = 0.08;
+    ctx.fillStyle = noisePattern(ctx); ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.restore();
+    const s0 = front[0].s;
+    // recessed lower panel with bevel
+    const pan = roundRectPts(0.09, H0 + 0.12, LW - 0.09, lerp(H0, H1, 0.5), 0.05).map(([s, y]) => L(s, y));
+    if (pan.every(Boolean)) {
+      ctx.fillStyle = rgba(shade(col, -0.035)); poly(ctx, pan); ctx.fill();
+      ctx.lineWidth = Math.max(1, s0 * 0.006);
+      ctx.strokeStyle = rgba(shade(col, -0.25), 0.7); ctx.stroke();
+      ctx.save(); ctx.translate(0, Math.max(1, s0 * 0.004));
+      ctx.strokeStyle = rgba(shade(col, 0.3), 0.5); poly(ctx, pan); ctx.stroke(); ctx.restore();
+    }
+    // porthole: trim ring, rubber gasket, glass with sky and a reflection
+    const pc = [LW / 2, lerp(H0, H1, 0.75)], pr = 0.12;
+    const ring = (k) => Array.from({ length: 36 }, (_, j) => { const a = (j / 36) * Math.PI * 2; return L(pc[0] + Math.cos(a) * pr * k, pc[1] + Math.sin(a) * pr * k); });
+    const r1 = ring(1.32), r2 = ring(1.1), r3 = ring(1);
+    if (r1.every(Boolean) && r2.every(Boolean) && r3.every(Boolean)) {
+      ctx.fillStyle = rgba(shade(col, 0.14)); poly(ctx, r1); ctx.fill();
+      ctx.strokeStyle = rgba(shade(col, -0.3), 0.6); ctx.lineWidth = Math.max(1, s0 * 0.004); ctx.stroke();
+      ctx.fillStyle = '#3a3f39'; poly(ctx, r2); ctx.fill();
+      const gt = L(pc[0], pc[1] + pr), gb = L(pc[0], pc[1] - pr);
+      const sg = ctx.createLinearGradient(gt.x, gt.y, gb.x, gb.y);
+      sg.addColorStop(0, '#bcd3e7'); sg.addColorStop(0.55, '#e8eff4'); sg.addColorStop(1, '#fbfaf7');
+      ctx.fillStyle = sg; poly(ctx, r3); ctx.fill();
+      ctx.save(); poly(ctx, r3); ctx.clip();
+      const a = L(pc[0] - pr, pc[1] + pr * 0.2), b = L(pc[0] + pr * 0.2, pc[1] + pr);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = s0 * 0.05;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y + s0 * 0.06); ctx.lineTo(b.x, b.y + s0 * 0.06); ctx.stroke();
+      ctx.restore();
+    }
+    // handle plate + lever near the meeting edge, and a small instruction placard
+    const hp = roundRectPts(LW - 0.13, -0.16, LW - 0.04, 0.02, 0.02).map(([s, y]) => L(s, y));
+    if (hp.every(Boolean)) { ctx.fillStyle = rgba(shade(col, -0.18)); poly(ctx, hp); ctx.fill(); }
+    const l1 = L(LW - 0.085, 0.0), l2 = L(LW - 0.085, -0.13);
+    if (l1 && l2) {
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#5d625b'; ctx.lineWidth = Math.max(2, s0 * 0.024); ctx.beginPath(); ctx.moveTo(l1.x, l1.y); ctx.lineTo(l2.x, l2.y); ctx.stroke();
+      ctx.strokeStyle = '#d6d9d3'; ctx.lineWidth = Math.max(1, s0 * 0.012); ctx.beginPath(); ctx.moveTo(l1.x - 1, l1.y); ctx.lineTo(l2.x - 1, l2.y); ctx.stroke();
+    }
+    const pl = [[0.12, 0.02], [0.3, 0.02], [0.3, 0.12], [0.12, 0.12]].map(([s, y]) => L(s, y));
+    if (pl.every(Boolean)) {
+      ctx.fillStyle = rgba(mix(hex('#efe9da'), HAZE, fd * 0.5)); poly(ctx, pl); ctx.fill();
+      ctx.strokeStyle = 'rgba(80,80,70,0.35)'; ctx.lineWidth = Math.max(0.5, s0 * 0.003);
+      for (const v of [0.045, 0.07, 0.095]) { const p1 = L(0.14, v), p2 = L(0.27, v); ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); }
+    }
+    // worn, slightly lighter edges
+    ctx.strokeStyle = 'rgba(255,255,255,0.16)'; ctx.lineWidth = Math.max(1, s0 * 0.006);
+    poly(ctx, front); ctx.stroke();
+  }
+}
+
+function drawDoorway(ctx, proj, fd, open) {
+  const ol = roundRectPts(-DOOR_W, SILL, DOOR_W, DOOR_TOP, OPEN_R);
+  const front = ol.map(([x, y]) => proj(x, y, D));
+  const back = ol.map(([x, y]) => proj(x, y, D + JAMB));
+  if (front.some((p) => !p) || back.some((p) => !p)) return;
+  // jamb: the deep inner faces of the surround, lit by daylight when open
+  for (let k = 0; k < ol.length; k++) {
+    const j = (k + 1) % ol.length;
+    const [ax, ay] = ol[k], [bx, by] = ol[j];
+    const len = Math.hypot(bx - ax, by - ay) || 1;
+    const ny = (bx - ax) / len; // inward normal's y (ccw outline)
+    const lit = -0.16 + 0.1 * ny + 0.22 * open;
+    ctx.fillStyle = rgba(mix(shade(P.bulk, lit), HAZE, fd * 0.6));
+    poly(ctx, [front[k], front[j], back[j], back[k]]); ctx.fill();
+    ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1; ctx.stroke();
+  }
+  // daylight leaking through the gaps of the closed door
+  const leak = 1 - smooth(0, 0.35, open);
+  if (leak > 0) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.shadowColor = 'rgba(255,248,230,0.9)'; ctx.shadowBlur = back[0].s * 0.06;
+    ctx.strokeStyle = `rgba(255,250,236,${0.75 * leak})`; ctx.lineWidth = Math.max(1, back[0].s * 0.006);
+    const c0 = proj(0, SILL + 0.02, D + JAMB), c1 = proj(0, DOOR_TOP - 0.02, D + JAMB);
+    ctx.beginPath(); ctx.moveTo(c0.x, c0.y); ctx.lineTo(c1.x, c1.y); ctx.stroke();
+    ctx.strokeStyle = `rgba(255,250,236,${0.35 * leak})`; poly(ctx, back); ctx.stroke();
+    ctx.restore();
+  }
+  // bulkhead face around the opening
+  const ring = fullProfile().map(([x, y]) => proj(x, y, D));
+  if (ring.every(Boolean)) {
+    const t = proj(0, 1.2, D), b = proj(0, FLOOR, D);
+    const gr = ctx.createLinearGradient(0, t.y, 0, b.y);
+    gr.addColorStop(0, rgba(mix(shade(P.bulk, 0.08), HAZE, fd * 0.7)));
+    gr.addColorStop(1, rgba(mix(shade(P.bulk, -0.12), HAZE, fd * 0.7)));
+    ctx.beginPath(); poly(ctx, ring, false); poly(ctx, front.slice().reverse(), false);
+    ctx.fillStyle = gr; ctx.fill('evenodd');
+    // panel seams
+    ctx.strokeStyle = rgba(mix(shade(P.bulk, -0.2), HAZE, fd * 0.7), 0.6); ctx.lineWidth = Math.max(1, t.s * 0.004);
+    for (const x of [-1.05, 1.05]) { const a = proj(x, FLOOR, D), c = proj(x, 1.0, D); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(c.x, c.y); ctx.stroke(); }
+  }
+  // raised surround trim with a dark rubber seal inside it
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = rgba(mix(shade(P.bulk, 0.1), HAZE, fd * 0.6)); ctx.lineWidth = Math.max(2, front[0].s * 0.05);
+  poly(ctx, front); ctx.stroke();
+  ctx.strokeStyle = rgba(mix(shade(P.bulk, -0.25), HAZE, fd * 0.6)); ctx.lineWidth = Math.max(1, front[0].s * 0.008);
+  poly(ctx, front); ctx.stroke();
+  // illuminated EXIT sign
+  const a = proj(-0.17, 1.02, D - 0.02), b = proj(0.17, 0.9, D - 0.02);
+  if (a && b) {
+    const w = b.x - a.x, h = b.y - a.y;
+    ctx.fillStyle = '#2b2f2c'; roundRect(ctx, a.x, a.y, w, h, h * 0.15); ctx.fill();
+    ctx.save();
+    ctx.fillStyle = '#7ef0a6'; ctx.shadowColor = 'rgba(80,240,140,0.9)'; ctx.shadowBlur = h * 0.5;
+    ctx.font = `700 ${(h * 0.62).toFixed(1)}px Arial, Helvetica, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('EXIT', a.x + w / 2, a.y + h * 0.54);
+    ctx.restore();
+  }
+}
+
+function drawShell(ctx, proj, cam, fog) {
+  const prof = fullProfile();
+  const zs = [];
+  for (let z = D; z > cam.z + 0.05; z -= 0.5) zs.push(z);
+  zs.push(cam.z + 0.05);
+  for (let s = 0; s < zs.length - 1; s++) {
+    const z0 = zs[s], z1 = zs[s + 1];
+    const d = (z0 + z1) / 2 - cam.z;
+    for (let k = 0; k < prof.length - 1; k++) {
+      const [ax, ay] = prof[k], [bx, by] = prof[k + 1];
+      const q = [proj(ax, ay, z0), proj(bx, by, z0), proj(bx, by, z1), proj(ax, ay, z1)];
+      if (q.some((p) => !p)) continue;
+      const ny = (ay + by) / 2, nx = Math.abs((ax + bx) / 2);
+      const ceil = ny > 1.05;
+      // ambient occlusion low on the sidewall, cove light on the ceiling
+      let lit = ceil ? 0.06 + 0.1 * smooth(0.3, 0.95, nx) : ny < -0.6 ? -0.12 : ny < 0.6 ? -0.03 : -0.08;
+      ctx.fillStyle = rgba(mix(shade(ceil ? P.ceil : P.wall, lit), HAZE, fog(d)));
+      poly(ctx, q); ctx.fill();
+      ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1; ctx.stroke();
+    }
+    // ceiling light strip
+    const cl = [proj(-0.09, 1.215, z0), proj(0.09, 1.215, z0), proj(0.09, 1.215, z1), proj(-0.09, 1.215, z1)];
+    if (cl.every(Boolean)) { ctx.fillStyle = rgba(mix(hex('#fffaf0'), HAZE, fog(d) * 0.4)); poly(ctx, cl); ctx.fill(); }
+    // floor: carpet aisle, darker under the seats, floor path lights
+    for (const [xa, xb, c] of [[-1.75, -0.43, P.floor], [-0.43, 0.43, P.carpet], [0.43, 1.75, P.floor]]) {
+      const q = [proj(xa, FLOOR, z0), proj(xb, FLOOR, z0), proj(xb, FLOOR, z1), proj(xa, FLOOR, z1)];
+      if (q.some((p) => !p)) continue;
+      ctx.fillStyle = rgba(mix(c === P.floor ? shade(c, -0.15) : c, HAZE, fog(d) * 0.8));
+      poly(ctx, q); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.stroke();
+    }
+    for (const x of [-0.44, 0.44]) {
+      const q = [proj(x - 0.012, FLOOR + 0.002, z0), proj(x + 0.012, FLOOR + 0.002, z0), proj(x + 0.012, FLOOR + 0.002, z1), proj(x - 0.012, FLOOR + 0.002, z1)];
+      if (q.every(Boolean)) { ctx.fillStyle = rgba(mix(hex('#f6ead0'), HAZE, fog(d) * 0.6), 0.85); poly(ctx, q); ctx.fill(); }
+    }
+  }
+}
+
+function drawWindows(ctx, proj, cam, fog) {
+  ROWS.forEach((z, idx) => {
+    for (const side of [-1, 1]) {
+      const wx = side * 1.8, wz = z + 0.35, cy = 0.27;
+      if (wz - cam.z < 0.25) continue;
+      const ell = (k) => projAll(proj, Array.from({ length: 36 }, (_, j) => {
+        const a = (j / 36) * Math.PI * 2;
+        return [wx, cy + Math.sin(a) * 0.19 * k, wz + Math.cos(a) * 0.13 * k];
+      }));
+      const bezel = ell(1.5), reveal = ell(1.2), glass = ell(1);
+      if (!bezel || !reveal || !glass) continue;
+      const c = proj(wx, cy, wz), f = fog(c.d);
+      const glow = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.s * 0.6);
+      glow.addColorStop(0, 'rgba(255,252,244,0.35)'); glow.addColorStop(1, 'rgba(255,252,244,0)');
+      ctx.fillStyle = glow; ctx.fillRect(c.x - c.s, c.y - c.s, c.s * 2, c.s * 2);
+      ctx.fillStyle = rgba(mix(shade(P.wall, 0.06), HAZE, f)); poly(ctx, bezel); ctx.fill();
+      ctx.strokeStyle = rgba(mix(shade(P.wall, -0.12), HAZE, f), 0.7); ctx.lineWidth = Math.max(0.5, c.s * 0.006); ctx.stroke();
+      ctx.fillStyle = rgba(mix(shade(P.wall, -0.14), HAZE, f)); poly(ctx, reveal); ctx.fill();
+      const top = proj(wx, cy + 0.19, wz), bot = proj(wx, cy - 0.19, wz);
+      const sg = ctx.createLinearGradient(0, top.y, 0, bot.y);
+      sg.addColorStop(0, rgba(mix(hex('#b9d0e5'), HAZE, f * 0.5))); sg.addColorStop(0.6, rgba(mix(hex('#eaf0f3'), HAZE, f * 0.5))); sg.addColorStop(1, '#ffffff');
+      ctx.fillStyle = sg; poly(ctx, glass); ctx.fill();
+      // window shade, pulled down by a different amount on each window
+      const frac = [0, 0.3, 0.55, 0.12, 0.4][(idx * 3 + (side > 0 ? 1 : 0)) % 5];
+      if (frac > 0) {
+        ctx.save(); poly(ctx, glass); ctx.clip();
+        const yEdge = proj(wx, cy + 0.19 - 0.38 * frac, wz);
+        ctx.fillStyle = rgba(mix(hex('#e6e0d3'), HAZE, f));
+        ctx.fillRect(c.x - c.s, top.y - c.s * 0.1, c.s * 2, yEdge.y - top.y + c.s * 0.1);
+        ctx.fillStyle = rgba(mix(hex('#b9b2a4'), HAZE, f)); ctx.fillRect(c.x - c.s, yEdge.y - c.s * 0.012, c.s * 2, c.s * 0.02);
+        ctx.restore();
+      }
+      ctx.strokeStyle = rgba(mix(hex('#8f897c'), HAZE, f), 0.8); ctx.lineWidth = Math.max(0.5, c.s * 0.008);
+      poly(ctx, glass); ctx.stroke();
+    }
+  });
+}
+
+function drawBins(ctx, proj, cam, fog) {
+  const segs = [];
+  for (let z = ROWS[0] - ROW_PITCH * 2 - 0.12; z < D - 0.3; z += ROW_PITCH) segs.push([z, Math.min(z + ROW_PITCH, D - 0.3)]);
+  segs.reverse(); // far to near
+  for (const [za, zbRaw] of segs) {
+    const zb = Math.max(zbRaw, cam.z + 0.06), zaC = Math.max(za, cam.z + 0.06);
+    if (zbRaw <= cam.z + 0.06) continue;
+    const zm = (za + zbRaw) / 2, d = zm - cam.z, f = fog(Math.max(d, 0));
+    for (const side of [-1, 1]) {
+      const X = (x) => side * x;
+      // underside with the passenger service unit
+      const u = [proj(X(1.12), 0.66, zaC), proj(X(1.76), 0.6, zaC), proj(X(1.76), 0.6, zb), proj(X(1.12), 0.66, zb)];
+      if (u.every(Boolean)) { ctx.fillStyle = rgba(mix(shade(BIN, -0.14), HAZE, f)); poly(ctx, u); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.stroke(); }
+      const psu = [proj(X(1.14), 0.655, zaC), proj(X(1.44), 0.64, zaC), proj(X(1.44), 0.64, zb), proj(X(1.14), 0.655, zb)];
+      if (psu.every(Boolean)) {
+        ctx.fillStyle = rgba(mix(shade(BIN, -0.06), HAZE, f)); poly(ctx, psu); ctx.fill();
+        if (d > 0.5) for (const [lx, lz] of [[1.2, zm - 0.1], [1.31, zm - 0.1], [1.38, zm + 0.18]]) {
+          const lp = projAll(proj, Array.from({ length: 14 }, (_, j) => { const a = (j / 14) * Math.PI * 2; return [X(lx) + Math.cos(a) * 0.022, 0.652, lz + Math.sin(a) * 0.022]; }));
+          if (lp) { ctx.fillStyle = rgba(mix(hex('#fbf6ea'), HAZE, f * 0.5)); poly(ctx, lp); ctx.fill(); ctx.strokeStyle = rgba(mix(hex('#8d877b'), HAZE, f), 0.7); ctx.lineWidth = 1; ctx.stroke(); }
+        }
+      }
+      // bin door (front face): soft vertical gradient, seam, latch
+      const fr = [proj(X(1.12), 0.66, zaC), proj(X(1.02), 1.03, zaC), proj(X(1.02), 1.03, zb), proj(X(1.12), 0.66, zb)];
+      if (!fr.every(Boolean)) continue;
+      const gy = ctx.createLinearGradient(0, fr[0].y, 0, fr[1].y);
+      gy.addColorStop(0, rgba(mix(shade(BIN, -0.04), HAZE, f))); gy.addColorStop(1, rgba(mix(shade(BIN, 0.1), HAZE, f)));
+      ctx.fillStyle = gy; poly(ctx, fr); ctx.fill();
+      ctx.strokeStyle = rgba(mix(shade(BIN, -0.06), HAZE, f)); ctx.lineWidth = 1; ctx.stroke();
+      if (za > cam.z + 0.06) {
+        const s0 = proj(X(1.12), 0.66, za), s1 = proj(X(1.02), 1.03, za);
+        ctx.strokeStyle = rgba(mix(shade(BIN, -0.35), HAZE, f), 0.7); ctx.lineWidth = Math.max(1, s0.s * 0.004);
+        ctx.beginPath(); ctx.moveTo(s0.x, s0.y); ctx.lineTo(s1.x, s1.y); ctx.stroke();
+      }
+      const lt = projAll(proj, [[X(1.11), 0.69, zm - 0.09], [X(1.105), 0.72, zm - 0.09], [X(1.105), 0.72, zm + 0.09], [X(1.11), 0.69, zm + 0.09]]);
+      if (lt && d > 0.4) { ctx.fillStyle = rgba(mix(shade(BIN, -0.4), HAZE, f)); poly(ctx, lt); ctx.fill(); }
+      // bevelled lip and the cove light washing the ceiling above the bins
+      const l0 = proj(X(1.02), 1.03, zaC), l1 = proj(X(1.02), 1.03, zb);
+      ctx.strokeStyle = rgba(mix(shade(BIN, 0.3), HAZE, f)); ctx.lineWidth = Math.max(1, l0.s * 0.006);
+      ctx.beginPath(); ctx.moveTo(l0.x, l0.y); ctx.lineTo(l1.x, l1.y); ctx.stroke();
+      const cv = [proj(X(1.0), 1.05, zaC), proj(X(0.55), 1.19, zaC), proj(X(0.55), 1.19, zb), proj(X(1.0), 1.05, zb)];
+      if (cv.every(Boolean)) {
+        const cg = ctx.createLinearGradient(cv[0].x, cv[0].y, cv[1].x, cv[1].y);
+        cg.addColorStop(0, `rgba(255,246,226,${0.4 * (1 - f)})`); cg.addColorStop(1, 'rgba(255,246,226,0)');
+        ctx.globalCompositeOperation = 'screen'; ctx.fillStyle = cg; poly(ctx, cv); ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+      }
+    }
+  }
+}
+
+function drawDoorSpill(ctx, proj, open) {
+  const q = [proj(-DOOR_W, FLOOR, D), proj(DOOR_W, FLOOR, D), proj(1.4, FLOOR, D - 3.4), proj(-1.4, FLOOR, D - 3.4)];
+  if (q.some((p) => !p)) return;
+  const g = ctx.createLinearGradient(0, q[0].y, 0, q[2].y);
+  g.addColorStop(0, `rgba(255,246,228,${0.45 * open})`); g.addColorStop(1, 'rgba(255,246,228,0)');
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen'; ctx.filter = `blur(${(q[0].s * 0.04).toFixed(1)}px)`;
+  ctx.fillStyle = g; poly(ctx, q); ctx.fill();
+  ctx.restore();
 }
 
 function fullProfile() {
@@ -404,39 +632,90 @@ function drawSky(ctx, proj, F, open) {
   }
 }
 
+// Airline seat seen from behind: reclined, rounded backrest with a linen
+// headrest cover, tray table, seat pocket and metal legs; the aisle seat
+// also shows its side, cushion and armrest.
+const SEAT_BOT = -0.62, SEAT_TOP = 0.14;
+const SEAT_BACK = (() => {
+  const pts = [[0, 0], [1, 0], [1, 0.68]];
+  pts.push(...bez([1, 0.68], [0.99, 1.0], [0.74, 1.0]).slice(1));
+  pts.push(...bez([0.26, 1.0], [0.01, 1.0], [0, 0.68]));
+  return pts;
+})();
+
 function drawSeat(ctx, proj, s, f) {
   const sx = s.side;
-  const xa = sx * s.x0, xb = sx * s.x1;
-  const top = 0.14, bot = FLOOR + 0.25;
-  const a = proj(Math.min(xa, xb), top, s.z), b = proj(Math.max(xa, xb), bot, s.z);
-  if (!a || !b) return;
-  const w = b.x - a.x, h = b.y - a.y, rad = Math.min(w, h) * 0.16;
-  // aisle-side thickness
-  const inner = sx > 0 ? Math.min(xa, xb) : Math.max(xa, xb);
-  const t0 = proj(inner, top, s.z), t1 = proj(inner, top - 0.02, s.z + 0.22), t2 = proj(inner, bot, s.z + 0.22), t3 = proj(inner, bot, s.z);
-  if (t0 && t1 && t2 && t3) {
-    ctx.fillStyle = rgba(mix(shade(P.seat, -0.16), HAZE, f));
-    poly(ctx, [t0, t1, t2, t3]); ctx.fill();
+  const zb = s.z + 0.04, zt = s.z - 0.07; // backrest reclined towards the camera
+  const pt = (u, v, dz = 0) => proj(sx * lerp(s.x0, s.x1, u), lerp(SEAT_BOT, SEAT_TOP, v), lerp(zb, zt, v) + dz);
+  const W3 = (x, y, z) => proj(sx * x, y, z);
+  const fogc = (c) => rgba(mix(c, HAZE, f));
+  const quad = (pts, c) => { const q = pts.map((p) => W3(...p)); if (q.every(Boolean)) { ctx.fillStyle = fogc(c); poly(ctx, q); ctx.fill(); } };
+
+  // contact shadow on the floor
+  const s0 = W3(s.x0, FLOOR, s.z + 0.25), s1 = W3(s.x1, FLOOR, s.z + 0.25);
+  if (s0 && s1) {
+    const cx = (s0.x + s1.x) / 2, rr = Math.abs(s1.x - s0.x) * 0.8;
+    const gr = ctx.createRadialGradient(cx, s0.y, 0, cx, s0.y, rr);
+    gr.addColorStop(0, 'rgba(25,30,20,0.32)'); gr.addColorStop(1, 'rgba(25,30,20,0)');
+    ctx.fillStyle = gr; ctx.fillRect(cx - rr, s0.y - rr * 0.4, rr * 2, rr * 0.8);
   }
-  const g = ctx.createLinearGradient(0, a.y, 0, b.y);
-  g.addColorStop(0, rgba(mix(P.seatHi, HAZE, f)));
-  g.addColorStop(0.35, rgba(mix(P.seat, HAZE, f)));
-  g.addColorStop(1, rgba(mix(shade(P.seat, -0.3), HAZE, f)));
-  ctx.fillStyle = g;
-  roundRect(ctx, a.x, a.y, w, h, rad); ctx.fill();
-  // headrest cover and stitching
-  ctx.fillStyle = rgba(mix(shade(P.seatHi, 0.25), HAZE, f), 0.9);
-  roundRect(ctx, a.x + w * 0.12, a.y + h * 0.04, w * 0.76, h * 0.2, rad * 0.6); ctx.fill();
-  ctx.strokeStyle = rgba(mix(shade(P.seat, -0.22), HAZE, f), 0.55);
-  ctx.lineWidth = Math.max(0.6, a.s * 0.004);
-  for (const u of [0.33, 0.66]) { ctx.beginPath(); ctx.moveTo(a.x + w * u, a.y + h * 0.3); ctx.lineTo(a.x + w * u, b.y); ctx.stroke(); }
-  // contact shadow under the seat
-  const sh = proj((xa + xb) / 2, FLOOR, s.z + 0.15);
-  if (sh) {
-    const r = Math.abs(w) * 0.7;
-    const gr = ctx.createRadialGradient(sh.x, sh.y, 0, sh.x, sh.y, r);
-    gr.addColorStop(0, 'rgba(25,30,20,0.35)'); gr.addColorStop(1, 'rgba(25,30,20,0)');
-    ctx.fillStyle = gr; ctx.fillRect(sh.x - r, sh.y - r * 0.4, r * 2, r * 0.8);
+  // legs and frame under the cushion
+  for (const u of [0.18, 0.82]) {
+    const x = lerp(s.x0, s.x1, u);
+    quad([[x - 0.015, FLOOR, s.z + 0.3], [x + 0.015, FLOOR, s.z + 0.3], [x + 0.015, SEAT_BOT - 0.1, s.z + 0.22], [x - 0.015, SEAT_BOT - 0.1, s.z + 0.22]], hex('#4a4d48'));
+  }
+  quad([[s.x0, SEAT_BOT - 0.08, s.z + 0.1], [s.x1, SEAT_BOT - 0.08, s.z + 0.1], [s.x1, SEAT_BOT - 0.13, s.z + 0.12], [s.x0, SEAT_BOT - 0.13, s.z + 0.12]], hex('#5b5d57'));
+
+  if (s.aisle) {
+    const x = s.x0;
+    // seat cushion side and armrest
+    quad([[x, SEAT_BOT + 0.02, s.z + 0.06], [x, SEAT_BOT + 0.02, s.z + 0.56], [x, SEAT_BOT - 0.1, s.z + 0.56], [x, SEAT_BOT - 0.1, s.z + 0.06]], shade(P.seat, -0.2));
+    quad([[x - 0.02, -0.4, s.z + 0.12], [x + 0.045, -0.4, s.z + 0.12], [x + 0.045, -0.4, s.z + 0.5], [x - 0.02, -0.4, s.z + 0.5]], hex('#a59e8f'));
+    quad([[x - 0.02, -0.4, s.z + 0.12], [x - 0.02, -0.4, s.z + 0.5], [x - 0.02, -0.47, s.z + 0.5], [x - 0.02, -0.47, s.z + 0.12]], hex('#7f796d'));
+    quad([[x - 0.01, -0.47, s.z + 0.44], [x - 0.01, -0.47, s.z + 0.48], [x - 0.01, SEAT_BOT, s.z + 0.48], [x - 0.01, SEAT_BOT, s.z + 0.44]], hex('#6f6a60'));
+    // backrest thickness on the aisle side
+    const side = [pt(0, 0), pt(0, 0.68), pt(0, 0.68, 0.17), pt(0, 0, 0.17)];
+    if (side.every(Boolean)) { ctx.fillStyle = fogc(shade(P.seat, -0.22)); poly(ctx, side); ctx.fill(); }
+  }
+
+  // backrest
+  const back = SEAT_BACK.map(([u, v]) => pt(u, v));
+  if (back.some((p) => !p)) return;
+  const top = pt(0.5, 1), bot = pt(0.5, 0);
+  const g = ctx.createLinearGradient(top.x, top.y, bot.x, bot.y);
+  g.addColorStop(0, fogc(P.seatHi)); g.addColorStop(0.4, fogc(P.seat)); g.addColorStop(1, fogc(shade(P.seat, -0.3)));
+  ctx.fillStyle = g; poly(ctx, back); ctx.fill();
+  ctx.save(); poly(ctx, back); ctx.clip();
+  // rounded form: darker flanks, soft highlight on the shoulders
+  const l = pt(0, 0.6), r = pt(1, 0.6);
+  const hg = ctx.createLinearGradient(l.x, l.y, r.x, r.y);
+  hg.addColorStop(0, 'rgba(40,34,24,0.22)'); hg.addColorStop(0.18, 'rgba(40,34,24,0)'); hg.addColorStop(0.82, 'rgba(40,34,24,0)'); hg.addColorStop(1, 'rgba(40,34,24,0.22)');
+  ctx.fillStyle = hg; ctx.fillRect(Math.min(l.x, r.x) - 2, top.y - 2, Math.abs(r.x - l.x) + 4, bot.y - top.y + 4);
+  const sh = pt(0.5, 0.82), rad = Math.abs(r.x - l.x) * 0.55;
+  const rg = ctx.createRadialGradient(sh.x, sh.y, 0, sh.x, sh.y, rad);
+  rg.addColorStop(0, 'rgba(255,252,244,0.28)'); rg.addColorStop(1, 'rgba(255,252,244,0)');
+  ctx.fillStyle = rg; ctx.fillRect(sh.x - rad, sh.y - rad, rad * 2, rad * 2);
+  ctx.restore();
+  const lw = Math.max(0.6, top.s * 0.004);
+  // headrest cover
+  const hr = roundRectPts(0.14, 0.8, 0.86, 0.975, 0.05).map(([u, v]) => pt(u, v));
+  if (hr.every(Boolean)) {
+    ctx.save(); ctx.shadowColor = 'rgba(40,34,24,0.25)'; ctx.shadowBlur = top.s * 0.02; ctx.shadowOffsetY = top.s * 0.008;
+    ctx.fillStyle = fogc(hex('#f3efe6')); poly(ctx, hr); ctx.fill(); ctx.restore();
+  }
+  // tray table with latch, seat pocket
+  const tr = roundRectPts(0.12, 0.32, 0.88, 0.6, 0.04).map(([u, v]) => pt(u, v));
+  if (tr.every(Boolean)) {
+    ctx.fillStyle = fogc(hex('#d0c8b8')); poly(ctx, tr); ctx.fill();
+    ctx.strokeStyle = fogc(shade(hex('#d0c8b8'), -0.3)); ctx.lineWidth = lw; ctx.stroke();
+  }
+  const la = [pt(0.45, 0.62), pt(0.55, 0.62), pt(0.55, 0.66), pt(0.45, 0.66)];
+  if (la.every(Boolean)) { ctx.fillStyle = fogc(hex('#6f695e')); poly(ctx, la); ctx.fill(); }
+  const pk = [pt(0.14, 0.08), pt(0.86, 0.08), pt(0.86, 0.26), pt(0.14, 0.26)];
+  if (pk.every(Boolean)) {
+    ctx.fillStyle = rgba(mix(shade(P.seat, -0.14), HAZE, f), 0.7); poly(ctx, pk); ctx.fill();
+    ctx.strokeStyle = fogc(shade(P.seat, -0.35)); ctx.lineWidth = lw * 1.5;
+    ctx.beginPath(); ctx.moveTo(pk[3].x, pk[3].y); ctx.lineTo(pk[2].x, pk[2].y); ctx.stroke();
   }
 }
 
