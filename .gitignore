@@ -1,0 +1,7 @@
+node_modules
+dist
+*.local
+.DS_Store
+# source footage stays out of git; only the extracted frames are committed
+footage/
+.claude/
