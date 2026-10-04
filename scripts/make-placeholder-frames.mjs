@@ -19,7 +19,9 @@ const args = Object.fromEntries(
   }, []),
 );
 
-const N = Number(args.frames ?? 144);
+const N = Number(args.frames ?? 192);
+// petal motion is authored against a 144-frame clock so timing is frame-count independent
+const clock = (i) => (i * 144) / N;
 const OUT = path.resolve('public/frames');
 const PAD = 4;
 
@@ -124,6 +126,19 @@ for (const z of ROWS) {
     const t = rand(-1, 1);
     add({ kind: pick(['rose', 'white', 'leaf', 'leaf', 'hydra']), x: t * 0.9, y: 1.12 - 0.05 * t * t + rand(-0.04, 0.04), z: z + rand(-0.15, 0.15), size: rand(0.05, 0.09), rot: rand(0, 6.3), tone: R(), seed: Math.floor(R() * 1e9) });
   }
+  // face-height intrusions the camera brushes past: wisteria dangling over
+  // the aisle, orchid sprays and loose blooms leaning in from the seats
+  for (const side of [-1, 1]) {
+    add({ kind: 'wisteria', x: side * rand(0.1, 0.4), y: 1.15, z: z + rand(0.1, 0.85), len: rand(0.5, 0.85), seed: Math.floor(R() * 1e9), tone: R() });
+  }
+  if (R() < 0.85) {
+    const side = R() < 0.5 ? -1 : 1;
+    add({ kind: 'spray', side, x: side * 0.6, y: rand(-0.05, 0.25), z: z + rand(0.2, 0.7), reach: rand(0.3, 0.5), lift: rand(0.08, 0.3), seed: Math.floor(R() * 1e9), tone: R() });
+  }
+  for (let k = 0; k < 4; k++) {
+    const side = R() < 0.5 ? -1 : 1;
+    add({ kind: pick(['rose', 'white', 'orchid', 'leaf', 'leaf']), x: side * rand(0.28, 0.5), y: rand(0.05, 0.6), z: z + rand(0, ROW_PITCH), size: rand(0.06, 0.1), rot: rand(0, 6.3), tone: R(), seed: Math.floor(R() * 1e9) });
+  }
 }
 // near-camera foreground framing
 for (let k = 0; k < 60; k++) {
@@ -138,9 +153,9 @@ for (const side of [-1, 1]) {
 cluster(0, 1.0, D - 0.2, { x: 0.9, y: 0.14, z: 0.15 }, 110, ['rose', 'white', 'leaf', 'hydra']);
 
 // petals (deterministic motion)
-const petals = Array.from({ length: 260 }, (_, k) => ({
+const petals = Array.from({ length: 380 }, (_, k) => ({
   z0: rand(0, 7), x: rand(-1.4, 1.4), y0: rand(0, 2.2), fall: rand(0.006, 0.014), sway: rand(0.03, 0.12),
-  ph: rand(0, 6.3), size: rand(0.012, 0.026), col: pick(P.blossom.concat([P.white[0]])), gust: k > 90,
+  ph: rand(0, 6.3), size: rand(0.012, 0.026), col: pick(P.blossom.concat([P.white[0]])), gust: k > 130,
 }));
 
 // sky beyond the door
@@ -289,12 +304,19 @@ function renderFrame(ctx, W, H, i) {
   const list = [];
   for (const it of items) {
     const d = (it.z ?? 0) - cam.z;
-    if (d < 0.12 || d > 26) continue;
+    if (d < 0.08 || d > 26) continue;
     list.push([d, it]);
+  }
+  // window light shafts, depth-sorted with everything else so they read as
+  // volumetric haze between the flowers
+  for (const z of ROWS) for (const side of [-1, 1]) {
+    const d = z + 0.35 - cam.z;
+    if (d > 0.4 && d < 22) list.push([d, { kind: 'shaft', side, z: z + 0.35 }]);
   }
   list.sort((a, b) => b[0] - a[0]);
   for (const [d, it] of list) {
     if (it.kind === 'seat') drawSeat(ctx, proj, it, fog(d));
+    else if (it.kind === 'shaft') drawShaft(ctx, proj, it, d);
     else drawPlant(ctx, proj, it, d, fog(d), F);
   }
 
@@ -429,12 +451,16 @@ function drawPlant(ctx, proj, it, d, f, F) {
   const p = proj(it.x, it.y, it.z);
   if (!p) return;
   const W = ctx.canvas.width, H = ctx.canvas.height;
-  const r = it.kind === 'wisteria' ? 0.05 * p.s : it.size * p.s;
+  const r = it.kind === 'wisteria' || it.kind === 'spray' ? 0.05 * p.s : it.size * p.s;
   if (r < 0.7) return;
-  if (p.x < -r * 3 || p.x > W + r * 3 || p.y < -r * 6 || p.y > H + r * 3) return;
-  // depth of field: very near things go soft
-  const blur = d < 1.3 ? (1.3 - d) * 9 * (F / 800) : 0;
+  const reach = it.kind === 'wisteria' || it.kind === 'spray' ? 22 : 3;
+  if (p.x < -r * reach || p.x > W + r * reach || p.y < -r * reach || p.y > H + r * 3) return;
+  // depth of field: things brushing the lens go very soft, the far end of
+  // the cabin slightly soft; fade in from the near plane so nothing pops
+  const k = F / 800;
+  let blur = d < 1.6 ? Math.min(34, Math.pow(1.6 - d, 1.4) * 13) * k : d > 9 ? 0.7 * k : 0;
   ctx.filter = blur > 0.6 ? `blur(${blur.toFixed(1)}px)` : 'none';
+  ctx.globalAlpha = smooth(0.08, 0.32, d);
   const rr = rng(it.seed);
   switch (it.kind) {
     case 'rose': drawRose(ctx, p.x, p.y, r * 1.1, mix(P.rose[Math.floor(it.tone * 4)], HAZE, f), rr, it.rot); break;
@@ -444,8 +470,49 @@ function drawPlant(ctx, proj, it, d, f, F) {
     case 'leaf': drawLeaf(ctx, p.x, p.y, r * 2.2, mix(P.leaf[Math.floor(it.tone * 5)], HAZE, f), it.rot); break;
     case 'fern': drawFern(ctx, p.x, p.y, r * 4, mix(P.leaf[Math.floor(it.tone * 5)], HAZE, f), it.rot, rr); break;
     case 'wisteria': drawWisteria(ctx, proj, it, f); break;
+    case 'spray': drawSpray(ctx, proj, it, f, rr); break;
   }
   ctx.filter = 'none';
+  ctx.globalAlpha = 1;
+}
+
+// arching orchid stem leaning from the seats into the aisle
+function drawSpray(ctx, proj, it, f, rr) {
+  const n = 8, pts = [];
+  for (let k = 0; k <= n; k++) {
+    const t = k / n;
+    const p = proj(it.x - it.side * it.reach * t, it.y + it.lift * Math.sin(t * Math.PI * 0.85) - 0.12 * t * t, it.z + 0.18 * t);
+    if (!p) return;
+    pts.push(p);
+  }
+  ctx.strokeStyle = rgba(mix(shade(P.leaf[2], -0.1), HAZE, f));
+  ctx.lineWidth = Math.max(1, 0.007 * pts[0].s);
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+  for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k].x, pts[k].y);
+  ctx.stroke();
+  drawLeaf(ctx, pts[1].x, pts[1].y, 0.12 * pts[1].s, mix(P.leaf[1], HAZE, f), it.side > 0 ? 2.6 : 0.5);
+  for (let k = 2; k <= n; k++) {
+    const t = k / n;
+    drawOrchid(ctx, pts[k].x, pts[k].y + 0.02 * pts[k].s, 0.05 * pts[k].s * (1.05 - 0.35 * t), f, rr, rr() * 6.3);
+  }
+}
+
+function drawShaft(ctx, proj, it, d) {
+  const wx = it.side * 1.77, zc = it.z;
+  const q = [
+    proj(wx, 0.52, zc - 0.13), proj(wx, 0.52, zc + 0.13),
+    proj(it.side * 0.1, FLOOR, zc + 1.0), proj(it.side * 0.25, FLOOR, zc + 0.55),
+  ];
+  if (q.some((p) => !p)) return;
+  const a = 0.13 * smooth(0.4, 1.4, d) * (1 - smooth(10, 22, d));
+  const g = ctx.createLinearGradient(q[0].x, q[0].y, (q[2].x + q[3].x) / 2, (q[2].y + q[3].y) / 2);
+  g.addColorStop(0, `rgba(255,248,232,${a})`); g.addColorStop(1, 'rgba(255,248,232,0)');
+  ctx.globalCompositeOperation = 'screen';
+  ctx.filter = `blur(${Math.max(2, q[0].s * 0.02).toFixed(1)}px)`;
+  ctx.fillStyle = g; poly(ctx, q); ctx.fill();
+  ctx.filter = 'none';
+  ctx.globalCompositeOperation = 'source-over';
 }
 
 function petalPath(ctx, x, y, len, wid, ang) {
@@ -463,21 +530,38 @@ function drawRose(ctx, x, y, r, col, rr, rot) {
   const sg = ctx.createRadialGradient(x, y + r * 0.25, 0, x, y + r * 0.25, r * 1.4);
   sg.addColorStop(0, 'rgba(30,30,20,0.25)'); sg.addColorStop(1, 'rgba(30,30,20,0)');
   ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(x, y + r * 0.25, r * 1.4, 0, 6.3); ctx.fill();
-  const layers = r > 10 ? 4 : 3;
+  const layers = r > 18 ? 5 : r > 10 ? 4 : 3;
+  const LIGHT = -Math.PI * 0.6; // key light from the windows, upper left
   for (let L = 0; L < layers; L++) {
     const k = 1 - L / layers;
     const n = 5 + (layers - L);
     for (let j = 0; j < n; j++) {
+      // inner layers cast soft shadows onto the outer petals (cupped bloom)
+      if (r > 6) {
+        ctx.shadowColor = `rgba(70,30,40,${L === 0 ? 0.22 : 0.3})`;
+        ctx.shadowBlur = r * (L === 0 ? 0.35 : 0.18);
+        ctx.shadowOffsetY = r * 0.06;
+      }
       const a = rot + (j / n) * Math.PI * 2 + L * 0.6 + rr() * 0.3;
-      const len = r * k * (0.95 + rr() * 0.15), wid = r * k * 0.55;
+      const len = r * k * (0.95 + rr() * 0.15), wid = r * k * (0.5 + rr() * 0.12);
+      const lit = 0.13 * Math.cos(a - LIGHT);
       const g = ctx.createLinearGradient(x, y, x + Math.cos(a) * len, y + Math.sin(a) * len);
-      g.addColorStop(0, rgba(shade(col, -0.28 + L * 0.04)));
-      g.addColorStop(0.65, rgba(shade(col, 0.05 + L * 0.03)));
-      g.addColorStop(1, rgba(shade(col, 0.28)));
+      g.addColorStop(0, rgba(shade(col, -0.32 + L * 0.05 + lit * 0.5)));
+      g.addColorStop(0.6, rgba(shade(col, 0.02 + L * 0.03 + lit)));
+      g.addColorStop(0.92, rgba(shade(col, 0.24 + lit)));
+      g.addColorStop(1, rgba(shade(col, 0.1)));
       ctx.fillStyle = g;
       petalPath(ctx, x, y, len, wid, a); ctx.fill();
+      // backlit rim on the petal edge
+      if (r > 8 && lit > 0) {
+        ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = `rgba(255,248,244,${(0.25 * lit / 0.13).toFixed(2)})`;
+        ctx.lineWidth = Math.max(0.6, r * 0.018);
+        ctx.stroke();
+      }
     }
   }
+  ctx.shadowBlur = 0; ctx.shadowOffsetY = 0; ctx.shadowColor = 'transparent';
   const c = ctx.createRadialGradient(x, y, 0, x, y, r * 0.3);
   c.addColorStop(0, rgba(shade(col, -0.4))); c.addColorStop(1, rgba(shade(col, -0.05), 0));
   ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r * 0.3, 0, 6.3); ctx.fill();
@@ -492,7 +576,9 @@ function drawOrchid(ctx, x, y, r, f, rr, rot) {
     const ang = a + tilt + (rr() - 0.5) * 0.15;
     const g = ctx.createLinearGradient(x, y, x + Math.cos(ang) * r * l, y + Math.sin(ang) * r * l);
     g.addColorStop(0, rgba(shade(base, -0.12))); g.addColorStop(0.5, rgba(base)); g.addColorStop(1, rgba(shade(base, -0.06)));
+    if (r > 6) { ctx.shadowColor = 'rgba(60,50,40,0.22)'; ctx.shadowBlur = r * 0.25; ctx.shadowOffsetY = r * 0.06; }
     ctx.fillStyle = g; petalPath(ctx, x, y, r * l, r * w, ang); ctx.fill();
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0; ctx.shadowColor = 'transparent';
     ctx.strokeStyle = 'rgba(160,150,140,0.18)'; ctx.lineWidth = Math.max(0.5, r * 0.015); ctx.stroke();
   }
   ctx.fillStyle = rgba(mix(hex('#b04a78'), HAZE, f * 0.5));
@@ -545,16 +631,26 @@ function drawFern(ctx, x, y, len, col, ang, rr) {
 function drawWisteria(ctx, proj, it, f) {
   const rr = rng(it.seed);
   const col = mix(P.lilac[Math.floor(it.tone * 3)], HAZE, f * 0.7);
-  const steps = 16;
+  // a raceme: dense, tapering cascade of small two-lobed florets, fuller and
+  // paler at the top, tighter and deeper-toned towards the tip
+  const steps = 26;
   for (let k = 0; k < steps; k++) {
     const t = k / steps;
     const p = proj(it.x + Math.sin(t * 3 + it.tone * 6) * 0.02, it.y - t * it.len, it.z);
     if (!p) return;
-    const r = 0.03 * (1 - t * 0.7) * p.s;
-    if (r < 0.6) continue;
-    for (let j = 0; j < 3; j++) {
-      ctx.fillStyle = rgba(shade(col, (rr() - 0.5) * 0.25 - t * 0.1));
-      ctx.beginPath(); ctx.arc(p.x + (rr() - 0.5) * r * 1.6, p.y + (rr() - 0.5) * r, r * 0.7, 0, 6.3); ctx.fill();
+    const width = 0.045 * (1 - t * 0.75) * p.s;
+    const fr = 0.014 * (1 - t * 0.5) * p.s;
+    if (fr < 0.5) continue;
+    const per = t < 0.2 ? 6 : 4;
+    for (let j = 0; j < per; j++) {
+      const fx = p.x + (rr() - 0.5) * width * 2, fy = p.y + (rr() - 0.5) * fr * 1.4;
+      const lit = -0.18 * t + (fx < p.x ? 0.08 : -0.06) + (rr() - 0.5) * 0.12;
+      const c = shade(col, lit - (t > 0.8 ? 0.15 : 0));
+      const a = rr() * 6.3;
+      ctx.fillStyle = rgba(c);
+      ctx.beginPath(); ctx.ellipse(fx - Math.cos(a) * fr * 0.35, fy, fr * 0.75, fr * 0.55, a, 0, 6.3); ctx.fill();
+      ctx.fillStyle = rgba(shade(c, 0.18));
+      ctx.beginPath(); ctx.ellipse(fx + Math.cos(a) * fr * 0.35, fy - fr * 0.1, fr * 0.6, fr * 0.45, a + 0.6, 0, 6.3); ctx.fill();
     }
   }
 }
@@ -566,8 +662,8 @@ function drawPetals(ctx, proj, i, cam, open) {
     const drift = p.gust ? gust * 6 : 0; // gust carries petals out of the door towards the camera
     const span = 7;
     const d = ((((p.z0 - cam.z * 0.35 - drift) % span) + span) % span) + 0.25;
-    const y = ((((p.y0 - i * p.fall) % 2.2) + 2.2) % 2.2) - 1.05 + (p.gust ? 0.2 : 0);
-    const x = p.x * (p.gust ? lerp(1, 0.35, 1 - gust) : 1) + Math.sin(i * 0.11 + p.ph) * p.sway;
+    const y = ((((p.y0 - clock(i) * p.fall) % 2.2) + 2.2) % 2.2) - 1.05 + (p.gust ? 0.2 : 0);
+    const x = p.x * (p.gust ? lerp(1, 0.35, 1 - gust) : 1) + Math.sin(clock(i) * 0.11 + p.ph) * p.sway;
     const q = proj(x, y, cam.z + d);
     if (!q) continue;
     const r = p.size * q.s;
@@ -576,7 +672,7 @@ function drawPetals(ctx, proj, i, cam, open) {
     if (p.gust) a *= gust;
     ctx.filter = d < 1 ? `blur(${((1 - d) * 6).toFixed(1)}px)` : 'none';
     ctx.globalAlpha = a * 0.95;
-    const ang = i * 0.09 + p.ph;
+    const ang = clock(i) * 0.09 + p.ph;
     const g = ctx.createLinearGradient(q.x - r, q.y, q.x + r, q.y);
     g.addColorStop(0, rgba(shade(p.col, -0.12))); g.addColorStop(1, rgba(shade(p.col, 0.2)));
     ctx.fillStyle = g;

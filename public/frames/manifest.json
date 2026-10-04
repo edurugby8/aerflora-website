@@ -1,7 +1,7 @@
 {
   "provisional": true,
   "note": "Provisional procedural sequence. Replace with the photographic sequence (see ASSETS.md).",
-  "frameCount": 144,
+  "frameCount": 192,
   "pad": 4,
   "sets": [
     {
@@ -34,9 +34,9 @@
     "y": 0.47
   },
   "markers": {
-    "arrive": 95,
-    "doorOpenStart": 99,
-    "doorOpenEnd": 132
+    "arrive": 127,
+    "doorOpenStart": 132,
+    "doorOpenEnd": 177
   },
   "rows": [
     32,
