@@ -1,0 +1,45 @@
+{
+  "provisional": true,
+  "note": "Provisional procedural sequence. Replace with the photographic sequence (see ASSETS.md).",
+  "frameCount": 144,
+  "pad": 4,
+  "sets": [
+    {
+      "name": "lg",
+      "width": 1600,
+      "height": 900,
+      "path": "lg/{i}.webp"
+    },
+    {
+      "name": "sm",
+      "width": 960,
+      "height": 540,
+      "path": "sm/{i}.webp"
+    },
+    {
+      "name": "portrait",
+      "width": 720,
+      "height": 1280,
+      "path": "portrait/{i}.webp"
+    }
+  ],
+  "posters": {
+    "start": "poster.webp",
+    "end": "poster-end.webp",
+    "startPortrait": "poster-portrait.webp",
+    "endPortrait": "poster-end-portrait.webp"
+  },
+  "focus": {
+    "x": 0.5,
+    "y": 0.47
+  },
+  "markers": {
+    "arrive": 95,
+    "doorOpenStart": 99,
+    "doorOpenEnd": 132
+  },
+  "rows": [
+    32,
+    10
+  ]
+}
