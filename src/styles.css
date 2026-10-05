@@ -117,11 +117,11 @@ p, h1 { margin: 0; }
 .frak { font-family: var(--font-frak); font-weight: 400; font-size: 1.06em; line-height: 1; vertical-align: baseline; letter-spacing: 0; margin-right: 0.01em; text-transform: none; }
 
 .welcome {
-  position: absolute; left: 50%; top: 54%; width: min(86vw, 760px); transform: translateX(-50%);
+  position: absolute; left: 50%; top: 64%; width: min(80vw, 520px); transform: translateX(-50%);
   text-align: center; pointer-events: none;
 }
 .welcome-title {
-  font-family: var(--font-serif); font-size: clamp(40px, 4.8vw, 84px); line-height: 1; letter-spacing: -0.02em;
+  font-family: var(--font-serif); font-size: clamp(30px, 3.2vw, 56px); line-height: 1; letter-spacing: -0.02em;
   color: #2b3123; opacity: 0;
   text-shadow: 0 0 18px rgba(255, 250, 244, 0.95), 0 0 42px rgba(255, 250, 244, 0.8);
 }
@@ -205,9 +205,9 @@ p, h1 { margin: 0; }
   .nav-center { grid-column: 1 / -1; grid-row: 2; justify-self: center; }
   .nav-links a { padding: 7px 11px; }
   .provisional-badge { left: 50%; top: 116px; transform: translateX(-50%); font-size: 8.5px; padding: 4px 10px; white-space: nowrap; }
-  .welcome { top: 60%; }
+  .welcome { top: 66%; }
   .welcome-sub { font-size: 9px; letter-spacing: 0.2em; }
-  .welcome-title { font-size: 11vw; }
+  .welcome-title { font-size: 7.6vw; }
   .headline { font-size: calc((100vw - 2 * var(--gutter)) / 10.4); bottom: calc(var(--gutter) * 2 + env(safe-area-inset-bottom, 0px)); }
   .scroll-cue { display: none; }
 }

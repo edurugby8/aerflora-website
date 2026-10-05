@@ -68,9 +68,9 @@ export function buildCabin() {
   const group = new THREE.Group();
   const pnl = TX.panel('#ece6d9');
   const wallMat = new THREE.MeshStandardMaterial({ color: '#ffffff', map: pnl.map, normalMap: pnl.normalMap, normalScale: new THREE.Vector2(0.4, 0.4), roughness: 0.62, side: THREE.DoubleSide, shadowSide: THREE.DoubleSide });
-  const binMat = new THREE.MeshStandardMaterial({ color: '#f3eee4', map: pnl.map, normalMap: pnl.normalMap, normalScale: new THREE.Vector2(0.3, 0.3), roughness: 0.48, shadowSide: THREE.DoubleSide });
+  const binMat = new THREE.MeshPhysicalMaterial({ color: '#f3eee4', map: pnl.map, normalMap: pnl.normalMap, normalScale: new THREE.Vector2(0.3, 0.3), roughness: 0.42, clearcoat: 0.18, clearcoatRoughness: 0.4, shadowSide: THREE.DoubleSide });
   const darkMat = new THREE.MeshStandardMaterial({ color: '#6c665c', roughness: 0.6 });
-  const metal = new THREE.MeshStandardMaterial({ color: '#9a9c97', metalness: 0.7, roughness: 0.35 });
+  const metal = new THREE.MeshStandardMaterial({ color: '#c3c5c0', metalness: 0.92, roughness: 0.26 });
   const lightMat = new THREE.MeshStandardMaterial({ color: '#fff8ea', emissive: '#fff3df', emissiveIntensity: 0.35 });
 
   // --- shell (lower sidewall + upper sidewall/ceiling), both sides
@@ -170,13 +170,15 @@ export function buildCabin() {
 
 function makeSeatParts() {
   const fab = TX.fabric('#d4c7ad', 4);
-  const fabric = new THREE.MeshStandardMaterial({ color: '#ffffff', map: fab.map, normalMap: fab.normalMap, normalScale: new THREE.Vector2(0.6, 0.6), roughness: 0.92 });
+  const fabric = new THREE.MeshPhysicalMaterial({ color: '#ffffff', map: fab.map, normalMap: fab.normalMap, normalScale: new THREE.Vector2(0.7, 0.7), roughness: 0.9, sheen: 0.5, sheenRoughness: 0.75, sheenColor: new THREE.Color('#fff4e2') });
   fabric.map.repeat.set(4, 4); fabric.normalMap.repeat.set(4, 4);
-  const backMat = new THREE.MeshStandardMaterial({ map: TX.seatBack('#d4c7ad'), normalMap: fab.normalMap, normalScale: new THREE.Vector2(0.5, 0.5), roughness: 0.9 });
+  const sb = TX.seatBack('#d4c7ad');
+  // three slightly different upholstery tones so rows don't read as clones
+  const backMats = ['#ffffff', '#f8f3ea', '#fbf6f2'].map((tint) => new THREE.MeshPhysicalMaterial({ color: tint, map: sb.map, normalMap: sb.normalMap, normalScale: new THREE.Vector2(0.9, 0.9), roughness: 0.9, sheen: 0.5, sheenRoughness: 0.75, sheenColor: new THREE.Color('#fff4e2') }));
   const linenMat = new THREE.MeshStandardMaterial({ map: TX.linen(), roughness: 0.95 });
-  const plastic = new THREE.MeshStandardMaterial({ color: '#cbc3b2', roughness: 0.45 });
-  const armMat = new THREE.MeshStandardMaterial({ color: '#8f887b', roughness: 0.5 });
-  const metal = new THREE.MeshStandardMaterial({ color: '#7f817c', metalness: 0.7, roughness: 0.38 });
+  const plastic = new THREE.MeshPhysicalMaterial({ color: '#cdc6b6', roughness: 0.36, clearcoat: 0.3, clearcoatRoughness: 0.3 });
+  const armMat = new THREE.MeshPhysicalMaterial({ color: '#8f887b', roughness: 0.42, clearcoat: 0.2 });
+  const metal = new THREE.MeshStandardMaterial({ color: '#b5b7b2', metalness: 0.92, roughness: 0.3 });
   const dark = new THREE.MeshStandardMaterial({ color: '#57534b', roughness: 0.6 });
   // backrest outline: full width at the shoulders, narrower rounded top
   const s = new THREE.Shape();
@@ -185,7 +187,7 @@ function makeSeatParts() {
   s.bezierCurveTo(-0.17, 0.78, -0.2, 0.74, -0.195, 0.55); s.closePath();
   const back = new THREE.ExtrudeGeometry(s, { depth: 0.08, bevelEnabled: true, bevelThickness: 0.035, bevelSize: 0.022, bevelSegments: 5, curveSegments: 12 });
   return {
-    back, backMats: [backMat, fabric],
+    back, backMats: backMats.map((m) => [m, fabric]),
     headrest: new THREE.ExtrudeGeometry(roundRectShape(-0.16, 0, 0.16, 0.19, 0.04), { depth: 0.006, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.006, bevelSegments: 2 }),
     tray: new THREE.ExtrudeGeometry(roundRectShape(-0.155, 0, 0.155, 0.25, 0.025), { depth: 0.014, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.005, bevelSegments: 2 }),
     latch: new RoundedBoxGeometry(0.05, 0.02, 0.014, 2, 0.005),
@@ -208,7 +210,7 @@ function placeSeat(P, side, a, b, z, index) {
   const backG = new THREE.Group();
   backG.position.set(0, 0.45, 0);
   backG.rotation.x = -0.14; // reclined towards the camera
-  const back = shadowy(new THREE.Mesh(P.back, P.backMats));
+  const back = shadowy(new THREE.Mesh(P.back, P.backMats[Math.floor(Math.abs(Math.sin(z * 12.9 + side * 7.1 + index * 3.3)) * 3) % 3]));
   back.position.z = -0.04; // shape cap at z=0 faces −z (the camera)
   backG.add(back);
   const hr = shadowy(new THREE.Mesh(P.headrest, m.linenMat)); hr.position.set(0, 0.57, -0.088); backG.add(hr);

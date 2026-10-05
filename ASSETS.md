@@ -4,7 +4,7 @@
 
 | Recurso | Estado |
 | --- | --- |
-| Secuencia principal (pasillo → puerta → árbol sobre nubes) | **Provisional, render 3D.** Escena Three.js (`scripts/scene3d/`) renderizada fotograma a fotograma con `npm run frames:3d`: geometría real, sombras del sol por las ventanillas, oclusión ambiental y profundidad de campo física. Los materiales y las flores son **procedurales**, así que el resultado es CG: **no** alcanza el acabado fotográfico de la referencia. |
+| Secuencia principal (pasillo → puerta → árbol sobre nubes) | **Provisional, render 3D.** Escena Three.js (`scripts/scene3d/`) renderizada fotograma a fotograma con `npm run frames:3d`: geometría real, sombras del sol por las ventanillas, iluminación de entorno (IBL), oclusión ambiental, pétalos translúcidos, cielo con nubes volumétricas por *raymarching* (`sky.js`) y profundidad de campo física. Los fotogramas se versionan con un hash de contenido (`manifest.version`, añadido como `?v=` a cada URL) para que el navegador no muestre renders antiguos. Los materiales y las flores son **procedurales**, así que el resultado es CG: **no** alcanza el acabado fotográfico de la referencia. |
 | Secuencia 2D anterior | `npm run frames:placeholder` (ilustración), solo como respaldo. |
 | Pósteres (fallback estático / movimiento reducido) | Se derivan automáticamente del primer y del último fotograma. |
 | Recursos de la plantilla Scrolltide «Aerflora» | **No disponibles.** Son contenido Premium; no se han extraído. Si se compra el acceso y la licencia lo permite, se integran con el script de extracción (abajo). |

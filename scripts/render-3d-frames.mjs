@@ -12,6 +12,7 @@ import fs from 'node:fs/promises';
 import { createReadStream, existsSync } from 'node:fs';
 import path from 'node:path';
 import puppeteer from 'puppeteer-core';
+import { createHash } from 'node:crypto';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 ? argv[i + 1] : d; };
@@ -74,7 +75,12 @@ if (!only) {
   for (const [name, dir, n] of [['poster.webp', 'lg', 1], ['poster-end.webp', 'lg', N], ['poster-portrait.webp', 'portrait', 1], ['poster-end-portrait.webp', 'portrait', N]]) {
     await fs.copyFile(path.join(OUT, dir, `${pad(n)}.webp`), path.join(OUT, name));
   }
+  // content hash of the frames: the site appends it to every frame URL, so a
+  // browser never keeps showing an older render from its cache
+  const hash = createHash('sha1');
+  for (const dir of ['lg', 'sm', 'portrait']) for (const f of (await fs.readdir(path.join(OUT, dir))).sort()) hash.update(await fs.readFile(path.join(OUT, dir, f)));
   const manifest = {
+    version: hash.digest('hex').slice(0, 10),
     provisional: true,
     note: '3D render from procedural geometry and materials (scripts/scene3d). Not photographic: replace with real footage when available (see ASSETS.md).',
     frameCount: N,
