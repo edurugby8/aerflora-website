@@ -1,6 +1,6 @@
 {
   "provisional": true,
-  "note": "Provisional procedural sequence. Replace with the photographic sequence (see ASSETS.md).",
+  "note": "3D render from procedural geometry and materials (scripts/scene3d). Not photographic: replace with real footage when available (see ASSETS.md).",
   "frameCount": 192,
   "pad": 4,
   "sets": [

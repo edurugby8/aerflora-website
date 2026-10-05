@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --port 4173 --strictPort",
+    "frames:3d": "node scripts/render-3d-frames.mjs",
     "frames:placeholder": "node scripts/make-placeholder-frames.mjs",
     "frames:extract": "node scripts/extract-frames.mjs"
   },
@@ -21,6 +22,8 @@
   },
   "optionalDependencies": {
     "@napi-rs/canvas": "^0.1.80",
-    "ffmpeg-static": "^5.2.0"
+    "ffmpeg-static": "^5.2.0",
+    "puppeteer-core": "^25.12.0",
+    "three": "^0.186.1"
   }
 }

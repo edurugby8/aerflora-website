@@ -4,11 +4,28 @@
 
 | Recurso | Estado |
 | --- | --- |
-| Secuencia principal (pasillo → puerta → árbol sobre nubes) | **Provisional.** Se genera por código con `npm run frames:placeholder`. Tiene aspecto ilustrado; **no** alcanza la calidad fotográfica de la referencia. |
+| Secuencia principal (pasillo → puerta → árbol sobre nubes) | **Provisional, render 3D.** Escena Three.js (`scripts/scene3d/`) renderizada fotograma a fotograma con `npm run frames:3d`: geometría real, sombras del sol por las ventanillas, oclusión ambiental y profundidad de campo física. Los materiales y las flores son **procedurales**, así que el resultado es CG: **no** alcanza el acabado fotográfico de la referencia. |
+| Secuencia 2D anterior | `npm run frames:placeholder` (ilustración), solo como respaldo. |
 | Pósteres (fallback estático / movimiento reducido) | Se derivan automáticamente del primer y del último fotograma. |
-| Recursos de la plantilla Scrolltide «Aerflora» | **No disponibles.** Son contenido Premium; no se han extraído. Si se compra el acceso y la licencia lo permite, se integran con el mismo script (abajo). |
+| Recursos de la plantilla Scrolltide «Aerflora» | **No disponibles.** Son contenido Premium; no se han extraído. Si se compra el acceso y la licencia lo permite, se integran con el script de extracción (abajo). |
 
 La web muestra una etiqueta «Secuencia provisional» mientras `public/frames/manifest.json` tenga `"provisional": true`. Al extraer la secuencia real, el script pone `false` y la etiqueta desaparece.
+
+## Qué sigue dependiendo de recursos
+
+La escena 3D ya resuelve la geometría, la luz, las oclusiones y el movimiento. Lo que la separa del acabado fotográfico son los **materiales y la vegetación**, que hoy se generan por código. Hay dos vías:
+
+1. **Vídeo fotorrealista** (la vía preferente, especificada abajo): sustituye la secuencia entera con `npm run frames:extract`.
+2. **Mejorar la escena 3D** con recursos reales, manteniendo la cámara, los tiempos y el reproductor:
+
+| Recurso | Función | Formato |
+| --- | --- | --- |
+| Flores escaneadas o modeladas (rosa de jardín, orquídea phalaenopsis, hortensia, glicinia, helecho, hiedra) | Sustituir la geometría procedural (`flowers.js`) por pétalos con forma, translucidez y color reales | glTF/GLB, ≤ 30 k triángulos por flor, texturas PBR 2K (base color, normal, roughness, transmisión) |
+| Tapicería de asiento (tejido + costuras) | Material de los asientos (`cabin.js`) | Texturas PBR tileables 2K |
+| Moqueta de cabina | Suelo del pasillo | Texturas PBR tileables 2K |
+| Paneles de cabina (plástico moldeado) y goma de juntas | Paredes, compartimentos, puerta | Texturas PBR tileables 1K |
+| Corteza de cerezo y flor de cerezo | Árbol sobre las nubes | Modelo GLB o texturas PBR + tarjeta de flor |
+| Mapa de entorno HDRI (cielo sobre nubes) | Iluminación y reflejos coherentes con el exterior | `.hdr`/`.exr` equirectangular 4K |
 
 ## Qué hace falta exactamente
 
