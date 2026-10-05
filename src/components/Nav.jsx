@@ -4,7 +4,7 @@ export default function Nav({ row }) {
   const [open, setOpen] = useState(true);
   return (
     <header className="nav">
-      <p className="nav-flight"><span className="dot" />Flight AF-01 · Boarding now</p>
+      <p className="nav-flight"><span className="dot" />Flight AF-01<span className="nav-flight-more">· Boarding now</span></p>
       <nav className="nav-center" aria-label="Main">
         <button
           type="button"

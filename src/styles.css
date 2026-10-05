@@ -53,7 +53,9 @@ p, h1 { margin: 0; }
   font: 500 10.5px/1.4 var(--font-mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--cream-dim);
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
 }
-.nav-flight { display: flex; align-items: center; gap: 10px; padding-top: 10px; }
+.nav-flight { display: flex; align-items: center; gap: 10px; padding-top: 10px; white-space: nowrap; min-width: 0; }
+/* between the phone layout and wide screens there is no room beside the menu: keep the label on one line */
+@media (min-width: 721px) and (max-width: 1100px) { .nav-flight-more { display: none; } }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cream); box-shadow: 0 0 0 3px rgba(246, 240, 228, 0.2); }
 .nav-center { display: flex; align-items: center; gap: 8px; }
 .nav-toggle {
