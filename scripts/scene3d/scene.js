@@ -23,8 +23,8 @@ const easeInOut = (t) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
 const CAM_END = D - 1.6; // where the camera stops in front of the open door
-const TREE = V(0, -2.6, D + 38); // far enough for the whole tree to fit the open door
-const CLOUD_SUN = V(0.28, 0.3, 1).normalize(); // low warm sun ahead: back-lit blossoms, silver linings
+const TREE = V(0, -6.2, D + 32); // close enough to dominate, sunk into the clouds so the crown fits the door
+const CLOUD_SUN = V(-0.55, 0.62, 0.75).normalize(); // low warm sun ahead: back-lit blossoms, silver linings
 
 // ------------------------------------------------------------------ flora
 const COLORS = {
@@ -243,22 +243,23 @@ function buildTree(petalMat) {
       pts.push(p);
     }
     parts.push(FL.stem(pts, rad, depth === 0 ? 0.8 : 0.4).geometry);
-    if (depth <= 2) for (let k = 1; k < pts.length; k++) for (let m = 0; m < 3; m++) spurs.push(pts[k - 1].clone().lerp(pts[k], R()));
+    // blossom spurs spaced along the outer twigs, leaving gaps so branches show through
+    if (depth <= 3) for (let k = 2; k < pts.length; k++) for (let m = 0; m < (depth <= 1 ? 3 : 1); m++) spurs.push(pts[k - 1].clone().lerp(pts[k], R()));
     if (depth === 0) { spurs.push(p.clone()); return; }
-    const kids = depth >= 5 ? 2 : 2 + (R() < 0.55 ? 1 : 0);
+    const kids = depth >= 6 ? 3 : depth >= 4 ? 2 : 2 + (R() < 0.4 ? 1 : 0);
     for (let k = 0; k < kids; k++) {
       const from = k === 0 ? p : pts[2 + Math.floor(R() * 2)];
       // cherries spread wide: more horizontal the higher the order
       // cherries open into a wide parasol: main limbs leave the trunk at a low angle
       const ang = (k / kids) * Math.PI * 2 + rand(-0.5, 0.5);
       const outward = V(Math.cos(ang), 0, Math.sin(ang) * 0.6);
-      const nd = depth >= 5
+      const nd = depth >= 6
         ? d.clone().multiplyScalar(0.6).add(outward.multiplyScalar(rand(0.9, 1.3))).add(V(0, rand(0.15, 0.45), 0)).normalize()
         : d.clone().add(V(rand(-0.9, 0.9), rand(-0.05, 0.35), rand(-0.6, 0.6))).normalize();
       grow(from, nd, len * rand(0.72, 0.86), rad * 0.62, depth - 1);
     }
   };
-  grow(TREE.clone().add(V(0, 1.1, 0)), V(0.06, 1, 0.02).normalize(), 3.4, 0.7, 6);
+  grow(TREE.clone().add(V(0, 1.1, 0)), V(0.06, 1, 0.02).normalize(), 3.6, 0.72, 7);
   const trunk = new THREE.Mesh(mergeGeometries(parts), barkMat);
   trunk.castShadow = true;
   g.add(trunk);
@@ -271,7 +272,7 @@ function buildTree(petalMat) {
     mine.forEach((s, k) => {
       d.position.copy(s).add(V(rand(-0.2, 0.2), rand(-0.12, 0.16), rand(-0.2, 0.2)));
       d.rotation.set(rand(0, 6.3), rand(0, 6.3), rand(0, 6.3));
-      d.scale.setScalar(rand(1.8, 2.8)); d.updateMatrix();
+      d.scale.setScalar(rand(1.0, 1.6)); d.updateMatrix();
       inst.setMatrixAt(k, d.matrix);
       const lift = 0.82 + 0.18 * Math.min(1, (s.y - TREE.y) / 14);
       inst.setColorAt(k, c.set(pick(pinks)).multiplyScalar(lift));

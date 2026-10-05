@@ -33,11 +33,16 @@ const frag = /* glsl */ `
 
   // cloud-top height field: undulating deck + far towers + the tree's mound
   float topHeight(vec2 xz) {
-    float deck = -9.0 + 7.0 * fbm(vec3(xz * 0.018, 0.0), 4);
+    // broad swells + ~10 m cumulus domes on top
+    float deck = -11.0 + 6.0 * fbm(vec3(xz * 0.018, 0.0), 4) + 7.0 * smoothstep(0.38, 0.72, fbm(vec3(xz * 0.075, 2.0), 3)) + 2.2 * fbm(vec3(xz * 0.24, 5.0), 3);
     float towers = smoothstep(0.52, 0.78, fbm(vec3(xz * 0.0065 + vec2(13.0, 7.0), 1.0), 3));
     float far = smoothstep(60.0, 140.0, length(xz - uCam.xz));
-    float mound = 7.0 * exp(-dot(xz - uTree.xz, xz - uTree.xz) / 160.0);
-    return max(deck + mound, -5.0 + towers * far * 34.0);
+    float mound = 6.5 * exp(-dot(xz - uTree.xz, xz - uTree.xz) / 120.0);
+    // a valley in the deck below the aircraft, so the clouds seen looking down
+    // through the door are far enough away to show their billows
+    vec2 dd = xz - vec2(0.0, uTree.z - 32.0);
+    float valley = 9.0 * exp(-dot(dd, dd) / 700.0);
+    return max(deck + mound - valley, -5.0 + towers * far * 34.0);
   }
 
   float density(vec3 p, int oct) {
@@ -68,8 +73,8 @@ const frag = /* glsl */ `
     vec3 ro = uCam;
     vec3 rd = normalize(vWorld - uCam);
     vec3 col = skyColor(rd);
-    vec3 sunCol = vec3(1.5, 1.24, 0.95);
-    vec3 amb = vec3(0.40, 0.48, 0.65);
+    vec3 sunCol = vec3(1.9, 1.6, 1.25);
+    vec3 amb = vec3(0.28, 0.34, 0.5);
     float trans = 1.0;
     vec3 acc = vec3(0.0);
     float jitter = hash(vec3(gl_FragCoord.xy, 1.0));
@@ -85,13 +90,23 @@ const frag = /* glsl */ `
       if (d > 0.003) {
         // light march towards the sun
         float ld = 0.0;
-        for (int j = 1; j <= 4; j++) ld += density(p + uSun * float(j) * 3.0, 3);
+        for (int j = 1; j <= 5; j++) ld += density(p + uSun * float(j) * 2.2, 3);
         float beer = exp(-ld * 1.35);
         float powder = 1.0 - exp(-d * 4.0);
         float hFrac = clamp((p.y + 30.0) / 34.0, 0.0, 1.0);
         // sky light from above brightens the billow tops, so the deck reads as volumes even back-lit
-        float topLit = smoothstep(-2.5, 0.5, p.y - topHeight(p.xz));
-        vec3 light = sunCol * beer * phase * mix(0.7, 1.0, powder) + amb * (0.35 + 0.45 * hFrac + 0.9 * topLit);
+        float topLit = smoothstep(-1.5, 0.5, p.y - topHeight(p.xz));
+        // ambient occlusion inside the volume: deeper = darker, so domes read as round masses
+        float ao = exp(-max(0.0, topHeight(p.xz) - p.y) * 0.3);
+        // surface orientation of the billows (from the cloud-top height field):
+        // sun-facing flanks bright, the far flanks in soft shadow
+        float e = 1.2;
+        float hx = topHeight(p.xz + vec2(e, 0.0)) - topHeight(p.xz - vec2(e, 0.0));
+        float hz = topHeight(p.xz + vec2(0.0, e)) - topHeight(p.xz - vec2(0.0, e));
+        vec3 n = normalize(vec3(-hx, 2.0 * e, -hz));
+        float lambert = mix(1.0, clamp(dot(n, uSun) * 0.75 + 0.25, 0.0, 1.0), topLit);
+        float skyView = mix(1.0, n.y * 0.5 + 0.5, topLit);
+        vec3 light = sunCol * beer * phase * lambert * mix(0.7, 1.0, powder) + amb * (0.2 + 0.3 * hFrac + 0.45 * topLit) * (0.35 + 0.65 * ao) * skyView;
         float a = 1.0 - exp(-d * dt * 0.65);
         // aerial perspective: distant clouds melt into the warm horizon haze
         float haze = 1.0 - exp(-t * 0.0028);
