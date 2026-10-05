@@ -14,8 +14,11 @@ export async function loadManifest() {
 
 export function frameUrl(manifest, set, i) {
   const n = String(i + 1).padStart(manifest.pad ?? 4, '0');
-  return FRAMES_BASE + set.path.replace('{i}', n);
+  return FRAMES_BASE + set.path.replace('{i}', n) + versionQuery(manifest);
 }
+
+// cache-busting: frames are content-hashed per render (manifest.version)
+const versionQuery = (manifest) => (manifest?.version ? `?v=${manifest.version}` : '');
 
 export const isPortraitViewport = () => window.innerWidth / window.innerHeight < 0.8;
 
@@ -38,5 +41,5 @@ export function pickSet(manifest) {
 export function posterUrl(manifest, which) {
   const p = manifest?.posters ?? {};
   const name = isPortraitViewport() ? p[`${which}Portrait`] ?? p[which] : p[which];
-  return name ? FRAMES_BASE + name : null;
+  return name ? FRAMES_BASE + name + versionQuery(manifest) : null;
 }

@@ -17,7 +17,7 @@ export function bladeGeometry({ len = 1, wid = 0.6, width, cup = 0.3, curl = 0.2
   for (let j = 0; j <= segV; j++) {
     const v = j / segV;
     const hw = width(v) * wid;
-    const edgeNoise = 1 + Math.sin(v * 9 + phase) * 0.06;
+    const edgeNoise = 1 + Math.sin(v * 5 + phase) * 0.035 + Math.sin(v * 13 + phase * 2) * 0.012;
     for (let i = 0; i <= segU; i++) {
       const u = (i / segU) * 2 - 1;
       const x = u * hw * edgeNoise;
@@ -25,7 +25,7 @@ export function bladeGeometry({ len = 1, wid = 0.6, width, cup = 0.3, curl = 0.2
       let z = cup * len * (u * u) * (0.3 + v) * 0.5; // cupped across
       z -= curl * len * Math.pow(v, 3); // tip curls back
       z += fold * len * Math.abs(u) * 0.25; // leaf midrib fold
-      z += Math.sin(u * 7 + v * 5 + phase) * ruffle * len * Math.abs(u) * v; // wavy margin
+      z += Math.sin(u * 3.2 + v * 2.6 + phase) * ruffle * len * u * u * v; // soft wave towards the margin only
       pos.push(x, y, z);
       uv.push(u * 0.5 + 0.5, v);
       const s = baseShade + (1 - baseShade) * Math.min(1, v * 1.6);
@@ -68,7 +68,8 @@ export function rose(openness = 0.6, seed = 1) {
       // petal grows along +y; tilt it outwards (towards local +z), then turn
       // it to face direction a. Negative cup/curl: margins curve towards the
       // bloom centre while the tips roll outwards, as on a real rose.
-      const p = bladeGeometry({ len: size, wid: size * 0.85, width: petalWidth, cup: -(0.9 - L * 0.12), curl: -(0.15 + L * 0.06 * openness), ruffle: 0.05, seed: seed * 31 + L * 7 + k, segU: 5, segV: 7, baseShade: 0.45 + L * 0.08 });
+      const sz = size * (0.9 + r() * 0.2);
+      const p = bladeGeometry({ len: sz, wid: sz * (0.8 + r() * 0.12), width: petalWidth, cup: -(0.85 - L * 0.1), curl: -(0.12 + L * 0.07 * openness), ruffle: 0.04, seed: seed * 31 + L * 7 + k, segU: 7, segV: 10, baseShade: 0.62 + L * 0.06 });
       parts.push(place(p, mat(Math.cos(a) * 0.02 * L, 0, Math.sin(a) * 0.02 * L, tilt, Math.PI / 2 - a, 0)));
     }
   });
@@ -157,4 +158,29 @@ export function stem(points, radius = 0.008, taper = 0.5) {
   }
   tube.computeVertexNormals();
   return { geometry: tube, curve };
+}
+
+/** Cherry blossom cluster: 6–9 five-petal flowers on short pedicels around a spur. */
+export function blossomCluster(seed = 1) {
+  const r = rng(seed);
+  const parts = [];
+  const n = 6 + Math.floor(r() * 4);
+  for (let f = 0; f < n; f++) {
+    const dir = new THREE.Vector3(r() - 0.5, r() * 0.8 - 0.2, r() - 0.5).normalize();
+    const pos = dir.clone().multiplyScalar(0.18 + r() * 0.1);
+    const flower = [];
+    for (let k = 0; k < 5; k++) {
+      const p = bladeGeometry({ len: 0.12, wid: 0.1, width: (v) => Math.sin(Math.min(1, v * 1.08) * Math.PI * 0.95) * (0.6 + 0.4 * v), cup: 0.25, curl: 0.06, ruffle: 0.03, seed: seed * 97 + f * 5 + k, segU: 4, segV: 5, baseShade: 0.85 });
+      p.translate(0, 0.01, 0);
+      p.rotateX(-0.35); // petals open slightly forward
+      p.rotateZ((k / 5) * Math.PI * 2 + r() * 0.2);
+      flower.push(p);
+    }
+    const g = mergeGeometries(flower);
+    const m = new THREE.Matrix4().lookAt(new THREE.Vector3(), dir, new THREE.Vector3(0, 1, 0)).multiply(new THREE.Matrix4().makeRotationY(Math.PI));
+    m.setPosition(pos);
+    g.applyMatrix4(m);
+    parts.push(g);
+  }
+  return mergeGeometries(parts);
 }

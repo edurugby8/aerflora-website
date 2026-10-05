@@ -97,11 +97,31 @@ export function seatBack(base = '#d6c9af') {
   seam(X(0.07), Y(0.6), X(0.07), Y(0.12));
   seam(X(-0.25), Y(0.6), X(0.25), Y(0.6));
   seam(X(-0.25), Y(0.12), X(0.25), Y(0.12));
+  // relief: padded channels that bulge between the seams, grooves at the
+  // stitch lines, and the fine weave on top
+  const HW = 256, HH = 420, hf = new Float32Array(HW * HH);
+  const seamsX = [-0.07, 0.07], seamsY = [0.12, 0.6];
+  for (let j = 0; j < HH; j++) for (let i = 0; i < HW; i++) {
+    const mx = (i / HW) * 0.5 - 0.25, my = (1 - j / HH) * 0.82;
+    let h = 0;
+    if (my > 0.12 && my < 0.6) {
+      const edges = [-0.25, ...seamsX, 0.25];
+      for (let k = 0; k < 3; k++) if (mx >= edges[k] && mx <= edges[k + 1]) h += Math.sin(((mx - edges[k]) / (edges[k + 1] - edges[k])) * Math.PI) * 0.9;
+      h *= Math.sin(((my - 0.12) / 0.48) * Math.PI) * 0.4 + 0.6;
+    }
+    for (const sx of seamsX) if (my > 0.12 && my < 0.6) h -= Math.exp(-((mx - sx) ** 2) / 0.00002) * 1.2;
+    for (const sy of seamsY) h -= Math.exp(-((my - sy) ** 2) / 0.00002) * 1.2;
+    h += (Math.sin(i * 1.7) * Math.sin(j * 1.7)) * 0.05 + (r() - 0.5) * 0.06;
+    hf[j * HW + i] = h;
+  }
+  const nm = toTex(normalFromHeight(hf, HW, HH, 6), { srgb: false });
   const t = toTex(c);
-  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
-  t.repeat.set(1 / 0.5, 1 / 0.82);
-  t.offset.set(0.5, 0);
-  return t;
+  for (const tex of [t, nm]) {
+    tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+    tex.repeat.set(1 / 0.5, 1 / 0.82);
+    tex.offset.set(0.5, 0);
+  }
+  return { map: t, normalMap: nm };
 }
 
 export function linen() {
@@ -154,11 +174,18 @@ export function petal(seed = 1) {
   const W = 128, H = 256, r = rng(seed);
   const [c, g] = canvas(W, H);
   const gr = g.createLinearGradient(0, H, 0, 0);
-  gr.addColorStop(0, '#c9c2c0'); gr.addColorStop(0.35, '#f1eeec'); gr.addColorStop(1, '#ffffff');
+  gr.addColorStop(0, '#ddd2cf'); gr.addColorStop(0.3, '#f5f1ef'); gr.addColorStop(1, '#ffffff');
   g.fillStyle = gr; g.fillRect(0, 0, W, H);
-  for (let k = 0; k < 26; k++) {
-    const a = (k / 25 - 0.5) * 1.3;
-    g.strokeStyle = `rgba(150,120,125,${0.08 + r() * 0.08})`; g.lineWidth = 0.8 + r();
+  // soft mottling, then very fine veins: delicate tissue rather than paper
+  for (let k = 0; k < 60; k++) {
+    const x = r() * W, y = r() * H, rad = 10 + r() * 30;
+    const m = g.createRadialGradient(x, y, 0, x, y, rad);
+    m.addColorStop(0, `rgba(${r() < 0.5 ? '255,255,255' : '210,190,195'},0.12)`); m.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = m; g.fillRect(0, 0, W, H);
+  }
+  for (let k = 0; k < 34; k++) {
+    const a = (k / 33 - 0.5) * 1.3;
+    g.strokeStyle = `rgba(160,130,135,${0.035 + r() * 0.04})`; g.lineWidth = 0.6 + r() * 0.6;
     g.beginPath(); g.moveTo(W / 2, H);
     g.quadraticCurveTo(W / 2 + Math.sin(a) * W * 0.4, H * 0.5, W / 2 + Math.sin(a) * W * 0.62, H * (0.04 + r() * 0.1));
     g.stroke();
@@ -186,17 +213,26 @@ export function leaf(base = '#4f6e3b', seed = 2) {
   return toTex(c, { clamp: true });
 }
 
+/** Cherry bark: dark with horizontal lenticels and vertical fissures, plus relief. */
 export function bark() {
   const W = 256, H = 512, r = rng(5);
   const [c, g] = canvas(W, H);
-  g.fillStyle = '#4e3d34'; g.fillRect(0, 0, W, H);
-  for (let k = 0; k < 220; k++) {
-    g.strokeStyle = `rgba(${r() < 0.5 ? '25,18,14' : '120,100,88'},${0.25 + r() * 0.3})`; g.lineWidth = 1 + r() * 3;
+  g.fillStyle = '#4a3a33'; g.fillRect(0, 0, W, H);
+  const hf = new Float32Array(W * H).fill(0.5);
+  for (let k = 0; k < 160; k++) {
+    g.strokeStyle = `rgba(${r() < 0.5 ? '22,16,13' : '118,98,88'},${0.25 + r() * 0.3})`; g.lineWidth = 1 + r() * 3;
     const x = r() * W; g.beginPath(); g.moveTo(x, 0);
-    for (let y = 0; y < H; y += 32) g.lineTo(x + (r() - 0.5) * 10, y);
+    let xx = x;
+    for (let y = 0; y < H; y += 8) { xx += (r() - 0.5) * 3; g.lineTo(xx, y); const xi = ((Math.round(xx) % W) + W) % W; hf[y * W + xi] -= 0.4; }
     g.stroke();
   }
-  return toTex(c, { repeat: [1, 2] });
+  // lenticels: short pale horizontal dashes typical of cherry bark
+  for (let k = 0; k < 420; k++) {
+    const x = r() * W, y = r() * H, w = 6 + r() * 16;
+    g.fillStyle = `rgba(160,140,125,${0.25 + r() * 0.25})`; g.fillRect(x, y, w, 1.5 + r() * 1.5);
+    for (let i = 0; i < w; i++) hf[(Math.floor(y) % H) * W + ((Math.floor(x + i)) % W)] += 0.5;
+  }
+  return { map: toTex(c, { repeat: [1, 2] }), normalMap: toTex(normalFromHeight(hf, W, H, 3), { srgb: false, repeat: [1, 2] }) };
 }
 
 export function cloud(seed = 9) {
@@ -257,5 +293,35 @@ export function placard() {
   g.fillStyle = '#c23b2e'; g.fillRect(0, 0, W, 10);
   g.fillStyle = 'rgba(70,70,60,0.6)';
   for (let y = 20; y < H - 6; y += 10) g.fillRect(8, y, W - 16 - (y % 20), 3);
+  return toTex(c, { clamp: true });
+}
+
+/**
+ * Lit cloud puff (value-noise fbm in a soft disc): bright warm top, cool
+ * shaded underside. Used only to tuck the tree's base into the cloud deck.
+ */
+export function cloudPuff(seed = 1) {
+  const S = 256, r = rng(seed);
+  const perm = Array.from({ length: 64 * 64 }, () => r());
+  const vn = (x, y) => {
+    const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+    const at = (i, j) => perm[(((j % 64) + 64) % 64) * 64 + (((i % 64) + 64) % 64)];
+    const sx = xf * xf * (3 - 2 * xf), sy = yf * yf * (3 - 2 * yf);
+    return (at(xi, yi) * (1 - sx) + at(xi + 1, yi) * sx) * (1 - sy) + (at(xi, yi + 1) * (1 - sx) + at(xi + 1, yi + 1) * sx) * sy;
+  };
+  const fbm2 = (x, y) => { let a = 0.5, s = 0; for (let o = 0; o < 5; o++) { s += a * vn(x, y); x *= 2.02; y *= 2.02; a *= 0.5; } return s; };
+  const [c, g] = canvas(S, S);
+  const img = g.createImageData(S, S);
+  for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) {
+    const u = (i / S) * 2 - 1, v = (j / S) * 2 - 1;
+    const disc = Math.max(0, 1 - Math.hypot(u, v * 1.35));
+    const n = fbm2(i / 26, j / 26);
+    const d = Math.max(0, Math.min(1, (disc * 1.6 + n - 0.9) * 2.2));
+    const lit = 1 - (j / S) * 0.45;
+    const k = (j * S + i) * 4;
+    img.data[k] = 255 * Math.min(1, lit * 1.02); img.data[k + 1] = 255 * Math.min(1, lit * 0.99); img.data[k + 2] = 255 * Math.min(1, lit * 0.97 + (1 - lit) * 0.25);
+    img.data[k + 3] = d * 255;
+  }
+  g.putImageData(img, 0, 0);
   return toTex(c, { clamp: true });
 }
