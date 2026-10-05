@@ -2,7 +2,7 @@
 
 Web floral inmersiva con animaciones controladas por scroll, ambientada en un avion lleno de flores.
 
-> **Estado:** el motor de scroll, la tipografía, los textos y el despliegue están listos. La secuencia de imágenes es **provisional** (generada por código). Para alcanzar la calidad fotográfica de la referencia hace falta el vídeo final: ver [ASSETS.md](ASSETS.md).
+> **Estado:** el motor de scroll, la tipografía, los textos y el despliegue están listos. La secuencia de imágenes es **provisional**: un render 3D de la cabina hecho con Three.js y materiales procedurales, no fotografía. Para alcanzar la calidad fotográfica de la referencia hace falta el vídeo final: ver [ASSETS.md](ASSETS.md).
 
 ## Cómo funciona
 
@@ -10,6 +10,7 @@ Web floral inmersiva con animaciones controladas por scroll, ambientada en un av
 - **Textos sincronizados:** el titular, el contador de fila y «Welcome aboard.» se colocan en la línea de tiempo según los marcadores de `public/frames/manifest.json` (`arrive`, `doorOpenStart`, `doorOpenEnd`).
 - **Carga progresiva:** los fotogramas se piden de grueso a fino (cada 16, 8, 4, 2, 1). La web se abre cuando están los esenciales (cada 8.º), con un indicador de progreso real; el resto sigue cargando y mientras tanto se dibuja el fotograma cargado más cercano, sin pantallas negras.
 - **Encuadre adaptable:** ajuste tipo *cover* alrededor del punto de fuga del pasillo; en pantallas verticales se usa un conjunto 9:16 propio. Cada dispositivo descarga solo el conjunto de resolución que necesita.
+- **Escena 3D (provisional):** `scripts/scene3d/` modela la cabina (asientos 3+3, ventanillas con hueco, compartimentos, puerta con marco profundo) y las instalaciones florales; `scripts/render-3d-frames.mjs` la renderiza en Edge/Chrome sin interfaz. Es determinista: el mismo fotograma siempre produce la misma imagen.
 - **Accesibilidad:** con `prefers-reduced-motion` o si la secuencia no carga, se muestra una versión estática (dos imágenes fijas + contenido).
 
 ## Desarrollo
@@ -25,7 +26,8 @@ Secuencia de fotogramas:
 
 ```bash
 npm run frames:extract -- footage/aerflora.mp4   # secuencia real (ver ASSETS.md)
-npm run frames:placeholder                        # regenera la provisional
+npm run frames:3d                                 # renderiza la escena 3D provisional (scripts/scene3d, necesita Edge o Chrome)
+npm run frames:placeholder                        # secuencia 2D anterior, solo como respaldo
 ```
 
 ## Publicación
