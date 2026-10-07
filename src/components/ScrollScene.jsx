@@ -4,8 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { FrameSequence } from '../lib/FrameSequence.js';
 import { CanvasPainter } from '../lib/CanvasPainter.js';
 import { frameUrl, pickSet, posterUrl } from '../lib/manifest.js';
-import Headline from './Headline.jsx';
-import Manifesto from './Manifesto.jsx';
+import HeroCopy from './HeroCopy.jsx';
 
 gsap.registerPlugin(ScrollTrigger);
 ScrollTrigger.config({ ignoreMobileResize: true });
@@ -14,7 +13,7 @@ ScrollTrigger.config({ ignoreMobileResize: true });
 // final frame so "Welcome aboard." can be read before the manifesto rises.
 const FRAME_END = 0.88;
 
-export default function ScrollScene({ manifest, ready, onProgress, onReady, onFail, onRow }) {
+export default function ScrollScene({ manifest, ready, onProgress, onReady, onFail }) {
   const canvasRef = useRef(null);
   const trackRef = useRef(null);
   const stageRef = useRef(null);
@@ -53,14 +52,14 @@ export default function ScrollScene({ manifest, ready, onProgress, onReady, onFa
   useLayoutEffect(() => {
     if (!ready) return;
     const last = manifest.frameCount - 1;
-    const { arrive, doorOpenStart, doorOpenEnd } = manifest.markers;
-    const [rowFrom, rowTo] = manifest.rows ?? [32, 10];
+    const { doorOpenStart, doorOpenEnd } = manifest.markers;
     const at = (frame) => (frame / last) * FRAME_END; // frame index → timeline position
 
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: 'none' } });
       tl.set({}, {}, 1); // timeline spans exactly 0..1 of the track
-      tl.to('.headline .line', { yPercent: -18, opacity: 0, stagger: 0.012, duration: at(16) }, at(3))
+      tl.to('.hero-copy > *', { y: -28, opacity: 0, stagger: 0.008, duration: at(16) }, at(3))
+        .set('.hero-copy', { pointerEvents: 'none' }, at(12))
         .to('.scroll-cue', { opacity: 0, duration: at(5) }, 0)
         .fromTo('.stage-shade', { opacity: 1 }, { opacity: 0.35, duration: at(18) }, at(2))
         .to('.stage-shade', { opacity: 0.9, duration: at(doorOpenEnd) - at(doorOpenStart) }, at(doorOpenStart))
@@ -78,8 +77,6 @@ export default function ScrollScene({ manifest, ready, onProgress, onReady, onFa
         onUpdate(self) {
           const f = Math.min(1, self.progress / FRAME_END) * last;
           painterRef.current?.setFrame(Math.round(f));
-          const walk = Math.min(1, f / arrive);
-          onRow(Math.round(rowFrom + (rowTo - rowFrom) * walk));
         },
       });
     }, stageRef.current?.parentNode ?? undefined);
@@ -90,26 +87,20 @@ export default function ScrollScene({ manifest, ready, onProgress, onReady, onFa
   const poster = posterUrl(manifest, 'start');
 
   return (
-    <section className="journey" id="home">
+    <section className="journey" id="inicio">
       <div className="stage" ref={stageRef}>
         <div className="stage-poster" style={poster ? { backgroundImage: `url(${poster})` } : undefined} />
         <canvas ref={canvasRef} className="stage-canvas" aria-hidden="true" />
         <div className="stage-shade" />
-        <Headline />
+        <HeroCopy />
         <div className="welcome" aria-live="polite">
-          <p className="welcome-title">Welcome aboard.</p>
-          <p className="welcome-sub">Floral atelier · Cabins in bloom</p>
+          <p className="welcome-title">Bienvenidos a bordo.</p>
+          <p className="welcome-sub">Floristería Aerflora · Flores que viajan entre nubes</p>
         </div>
-        <p className="scroll-cue">Scroll to board</p>
-        {manifest.provisional && (
-          <p className="provisional-badge" title={manifest.note}>
-            Secuencia provisional — pendiente de recursos finales
-          </p>
-        )}
+        <p className="scroll-cue" aria-hidden="true">Desliza para embarcar</p>
         <div className="stream-bar" style={{ transform: `scaleX(${streamed})`, opacity: streamed < 1 ? 1 : 0 }} />
       </div>
       <div className="track" ref={trackRef} />
-      <Manifesto />
     </section>
   );
 }

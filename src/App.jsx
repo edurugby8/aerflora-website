@@ -4,6 +4,7 @@ import Nav from './components/Nav.jsx';
 import Loader from './components/Loader.jsx';
 import ScrollScene from './components/ScrollScene.jsx';
 import StaticScene from './components/StaticScene.jsx';
+import Shop from './components/Shop.jsx';
 import Footer from './components/Footer.jsx';
 
 const reducedMotionQuery = '(prefers-reduced-motion: reduce)';
@@ -25,7 +26,6 @@ export default function App() {
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [row, setRow] = useState(null);
 
   useEffect(() => {
     loadManifest().then(setManifest).catch(() => setFailed(true));
@@ -39,18 +39,13 @@ export default function App() {
     if (loading) window.scrollTo(0, 0);
   }, [loading]);
 
-  useEffect(() => {
-    if (manifest && !staticMode) setRow(manifest.rows?.[0] ?? 32);
-    else setRow(null);
-  }, [manifest, staticMode]);
-
   const onReady = useCallback(() => setReady(true), []);
   const onFail = useCallback(() => setFailed(true), []);
 
   return (
     <>
       <Loader progress={progress} done={!loading} />
-      <Nav row={row} />
+      <Nav />
       <main>
         {staticMode
           ? <StaticScene manifest={manifest} />
@@ -61,9 +56,9 @@ export default function App() {
               onProgress={setProgress}
               onReady={onReady}
               onFail={onFail}
-              onRow={setRow}
             />
           )}
+        <Shop />
       </main>
       <Footer />
     </>
