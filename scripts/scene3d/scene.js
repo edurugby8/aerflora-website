@@ -437,12 +437,24 @@ function cameraZ(i) {
   return D - 2.1 + (CAM_END - (D - 2.1)) * easeInOut((i - arrive) / (N - 1 - arrive));
 }
 
-export function renderFrame(i) {
+/**
+ * Renders frame i; with `view` the camera is placed freely instead (used for
+ * the still images of the shop sections): { pos, look, fov, focus, aperture }.
+ */
+export function renderFrame(i, view) {
   const { renderer, scene, camera, composer, depthRT, depthMat, dof, cabin, petals, petalSeeds, doorSun, sky, markers, frameCount } = S;
   const clock = (i * 144) / frameCount; // motion authored on a 144-frame clock
   const z = cameraZ(i);
   camera.position.set(0, EYE, z);
   camera.lookAt(0, EYE - 0.12, z + 10);
+  if (view) {
+    camera.position.set(...view.pos);
+    camera.lookAt(...view.look);
+    camera.fov = view.fov ?? camera.fov;
+    camera.updateProjectionMatrix();
+    S.dof.uniforms.focus.value = view.focus ?? 1.8;
+    S.dof.uniforms.aperture.value = view.aperture ?? 0.0045;
+  }
   camera.updateMatrixWorld();
   sky.position.copy(camera.position);
   sky.material.uniforms.uCam.value.copy(camera.position);

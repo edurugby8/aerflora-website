@@ -1,26 +1,16 @@
 import { posterUrl } from '../lib/manifest.js';
-import Headline from './Headline.jsx';
-import Manifesto from './Manifesto.jsx';
+import HeroCopy from './HeroCopy.jsx';
 
 // Used with prefers-reduced-motion, or when the sequence cannot load:
-// two still moments of the journey, no scroll-driven motion.
+// a still of the cabin with the opening text, no scroll-driven motion.
 export default function StaticScene({ manifest }) {
   const start = posterUrl(manifest, 'start');
-  const end = posterUrl(manifest, 'end');
   return (
-    <section className="static" id="home">
+    <section className="static-hero" id="inicio">
       <div className="static-shot" style={start ? { backgroundImage: `url(${start})` } : undefined}>
         <div className="stage-shade" />
-        <Headline />
+        <HeroCopy />
       </div>
-      <div className="static-shot is-door" style={end ? { backgroundImage: `url(${end})` } : undefined}>
-        <div className="stage-shade" />
-        <div className="welcome is-static">
-          <p className="welcome-title">Welcome aboard.</p>
-          <p className="welcome-sub">Floral atelier · Cabins in bloom</p>
-        </div>
-      </div>
-      <Manifesto />
     </section>
   );
 }

@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview --port 4173 --strictPort",
     "frames:3d": "node scripts/render-3d-frames.mjs",
+    "images": "node scripts/render-stills.mjs",
     "frames:placeholder": "node scripts/make-placeholder-frames.mjs",
     "frames:extract": "node scripts/extract-frames.mjs"
   },

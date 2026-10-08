@@ -1,33 +1,51 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-export default function Nav({ row }) {
-  const [open, setOpen] = useState(true);
+const LINKS = [
+  ['#flores', 'Flores'],
+  ['#ocasiones', 'Ocasiones'],
+  ['#nosotros', 'Nosotros'],
+  ['#contacto', 'Contacto'],
+];
+
+// Transparent over the cabin; once the journey is behind us it becomes a
+// solid cream bar so it never sits on top of the shop content.
+export default function Nav() {
+  const [open, setOpen] = useState(false);
+  const [solid, setSolid] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const journey = document.querySelector('.journey, .static-hero');
+      const end = journey ? journey.offsetTop + journey.offsetHeight - 90 : 0;
+      setSolid(window.scrollY > end);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); };
+  }, []);
+
+  const close = () => setOpen(false);
+
   return (
-    <header className="nav">
-      <p className="nav-flight"><span className="dot" />Flight AF-01<span className="nav-flight-more">· Boarding now</span></p>
-      <nav className="nav-center" aria-label="Main">
-        <button
-          type="button"
-          className="nav-toggle"
-          aria-expanded={open}
-          aria-controls="nav-links"
-          aria-label={open ? 'Close menu' : 'Open menu'}
-          onClick={() => setOpen((o) => !o)}
-        >
-          <span className={open ? 'icon-x' : 'icon-menu'} aria-hidden="true" />
-        </button>
-        <ul id="nav-links" className={`nav-links${open ? '' : ' is-hidden'}`}>
-          <li><a href="#home">Home</a></li>
-          <li><a href="#about">About</a></li>
-          <li><a href="#contact">Contact</a></li>
-        </ul>
+    <header className={`nav${solid || open ? ' is-solid' : ''}${open ? ' is-open' : ''}`}>
+      <a className="brand" href="#inicio" onClick={close} aria-label="Aerflora, inicio">
+        Aerflora
+      </a>
+      <nav id="nav-links" className="nav-links" aria-label="Principal">
+        {LINKS.map(([href, label]) => <a key={href} href={href} onClick={close}>{label}</a>)}
+        <a className="btn btn-primary btn-small nav-cta" href="#contacto" onClick={close}>Encargar</a>
       </nav>
-      {row != null && (
-        <p className="nav-row" aria-label={`Row ${row}`}>
-          <span>Row</span>
-          <strong>{row}</strong>
-        </p>
-      )}
+      <button
+        type="button"
+        className="nav-toggle"
+        aria-expanded={open}
+        aria-controls="nav-links"
+        aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className={open ? 'icon-x' : 'icon-menu'} aria-hidden="true" />
+      </button>
     </header>
   );
 }

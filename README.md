@@ -1,6 +1,15 @@
 # aerflora-website
 
-Web floral inmersiva con animaciones controladas por scroll, ambientada en un avion lleno de flores.
+Web de **Aerflora, floristería**: ramos de temporada, flores preservadas y composiciones especiales, presentados con un recorrido por scroll por un avión lleno de flores que viaja entre nubes.
+
+## Apartados
+
+- **Inicio**: el recorrido por la cabina con la frase «Siempre hay una razón para florecer.» y los accesos «Descubre nuestras flores» y «Encargar un ramo».
+- **Ramos y flores** (`#flores`): colecciones Cielo Abierto (temporada), Nube Eterna (preservadas) y Puerta del Cielo (composiciones especiales).
+- **Flores para cada ocasión** (`#ocasiones`): cumpleaños, aniversarios, bodas y pequeños detalles.
+- **Sobre Aerflora** (`#nosotros`) y **Contacto** (`#contacto`, encargos y consultas por correo).
+
+Las imágenes de las tarjetas (`public/images`) se generan desde la misma escena 3D con `npm run images`. El correo de contacto `hola@aerflora.example` es provisional: sustitúyelo por el real en `src/components/Shop.jsx`.
 
 > **Estado:** el motor de scroll, la tipografía, los textos y el despliegue están listos. La secuencia de imágenes es **provisional**: un render 3D de la cabina hecho con Three.js y materiales procedurales, no fotografía. Para alcanzar la calidad fotográfica de la referencia hace falta el vídeo final: ver [ASSETS.md](ASSETS.md).
 

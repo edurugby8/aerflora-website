@@ -1,10 +1,17 @@
 export default function Footer() {
   return (
-    <footer className="footer" id="contact">
-      <p className="eyebrow">Contact</p>
-      <p className="footer-title">Plant your next <em>departure</em>.</p>
-      <a className="footer-mail" href="mailto:hola@aerflora.example">hola@aerflora.example</a>
-      <p className="footer-meta"><span>© Aerflora atelier</span><span>Flight AF-01</span></p>
+    <footer className="footer">
+      <div className="footer-brand">
+        <a className="brand" href="#inicio">Aerflora</a>
+        <p>Siempre hay una razón para florecer.</p>
+      </div>
+      <nav className="footer-links" aria-label="Pie de página">
+        <a href="#flores">Ramos y flores</a>
+        <a href="#ocasiones">Ocasiones</a>
+        <a href="#nosotros">Sobre Aerflora</a>
+        <a href="#contacto">Contacto</a>
+      </nav>
+      <p className="footer-meta">© 2026 Aerflora · Floristería</p>
     </footer>
   );
 }

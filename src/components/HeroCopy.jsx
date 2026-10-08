@@ -1,0 +1,15 @@
+// Opening text over the cabin: brand, main phrase, support line and the two
+// ways in (the flowers, or straight to ordering).
+export default function HeroCopy() {
+  return (
+    <div className="hero-copy">
+      <p className="hero-eyebrow">Floristería<span className="hero-eyebrow-more"> · Flores que viajan entre nubes</span></p>
+      <h1 className="hero-title">Siempre hay una razón para florecer.</h1>
+      <p className="hero-lead">Flores para celebrar, acompañar y convertir cualquier día en algo especial.</p>
+      <div className="hero-actions">
+        <a className="btn btn-primary" href="#flores">Descubre nuestras flores</a>
+        <a className="btn btn-ghost" href="#contacto">Encargar un ramo</a>
+      </div>
+    </div>
+  );
+}
