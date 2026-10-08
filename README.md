@@ -4,12 +4,15 @@ Web de **Aerflora, floristería**: ramos de temporada, flores preservadas y comp
 
 ## Apartados
 
-- **Inicio**: el recorrido por la cabina con la frase «Siempre hay una razón para florecer.» y los accesos «Descubre nuestras flores» y «Encargar un ramo».
+- **Inicio**: el recorrido por la cabina con «Siempre hay una razón para florecer.», la invitación «Hay cosas que se dicen mejor con flores.» y el botón «Encuentra tu ramo».
+- **Encuentra tu ramo** (`#tu-ramo`): atelier en tres pasos (emoción, estilo, tamaño) que compone una propuesta con nombre, descripción, flores, paleta, ilustración SVG y dedicatoria editable. Reglas locales en `src/lib/bouquets.js`; sin servidor.
 - **Ramos y flores** (`#flores`): colecciones Cielo Abierto (temporada), Nube Eterna (preservadas) y Puerta del Cielo (composiciones especiales).
 - **Flores para cada ocasión** (`#ocasiones`): cumpleaños, aniversarios, bodas y pequeños detalles.
 - **Sobre Aerflora** (`#nosotros`) y **Contacto** (`#contacto`, encargos y consultas por correo).
 
-Las imágenes de las tarjetas (`public/images`) se generan desde la misma escena 3D con `npm run images`. El correo de contacto `hola@aerflora.example` es provisional: sustitúyelo por el real en `src/components/Shop.jsx`.
+Las tarjetas de colecciones y ocasiones usan ilustraciones botánicas SVG (`src/components/BouquetArt.jsx`); las imágenes de «Sobre Aerflora» y «Contacto» salen de la escena 3D (`npm run images`).
+
+**Contacto:** el correo está en `src/lib/contact.js`. Mientras termine en `.example`, la web no ofrece enlaces de correo: «Consultar este ramo» prepara el resumen y ofrece «Copiar mi propuesta». Al poner un correo real aparecen automáticamente los botones para escribir con la propuesta ya redactada.
 
 > **Estado:** el motor de scroll, la tipografía, los textos y el despliegue están listos. La secuencia de imágenes es **provisional**: un render 3D de la cabina hecho con Three.js y materiales procedurales, no fotografía. Para alcanzar la calidad fotográfica de la referencia hace falta el vídeo final: ver [ASSETS.md](ASSETS.md).
 

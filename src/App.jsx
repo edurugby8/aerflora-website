@@ -5,6 +5,7 @@ import Loader from './components/Loader.jsx';
 import ScrollScene from './components/ScrollScene.jsx';
 import StaticScene from './components/StaticScene.jsx';
 import Shop from './components/Shop.jsx';
+import BouquetFinder from './components/BouquetFinder.jsx';
 import Footer from './components/Footer.jsx';
 
 const reducedMotionQuery = '(prefers-reduced-motion: reduce)';
@@ -58,7 +59,10 @@ export default function App() {
               onFail={onFail}
             />
           )}
-        <Shop />
+        <div className="shop">
+          <BouquetFinder />
+          <Shop />
+        </div>
       </main>
       <Footer />
     </>

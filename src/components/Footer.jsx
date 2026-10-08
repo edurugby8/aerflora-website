@@ -6,6 +6,7 @@ export default function Footer() {
         <p>Siempre hay una razón para florecer.</p>
       </div>
       <nav className="footer-links" aria-label="Pie de página">
+        <a href="#tu-ramo">Encuentra tu ramo</a>
         <a href="#flores">Ramos y flores</a>
         <a href="#ocasiones">Ocasiones</a>
         <a href="#nosotros">Sobre Aerflora</a>
