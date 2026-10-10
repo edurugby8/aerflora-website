@@ -61,26 +61,28 @@ export const EMOTIONS = [
 export const STYLES = [
   {
     id: 'silvestre', label: 'Silvestre', hint: 'Libre, como recién cogido del campo',
-    extras: ['espigas', 'paniculata'], accent: ['Verde salvia', '#8fa77e'], wrap: 'twine',
+    extras: ['espigas', 'paniculata'], accent: ['Verde salvia', '#8fa77e'],
     line: 'Montado a mano alzada, con tallos sueltos, espigas y verdes de campo.',
   },
   {
     id: 'romantico', label: 'Romántico', hint: 'Suave, lleno y envolvente',
-    extras: ['ranunculo', 'eucalipto'], accent: ['Rosa empolvado', '#e8c4c2'], wrap: 'tissue',
+    extras: ['ranunculo', 'eucalipto'], accent: ['Rosa empolvado', '#e8c4c2'],
     line: 'Una cúpula de pétalos redondos envuelta en papel de seda.',
   },
   {
     id: 'minimalista', label: 'Minimalista', hint: 'Pocas flores, mucho espacio',
-    extras: ['cala', 'olivo'], accent: ['Blanco hueso', '#efe9dd'], wrap: 'vase',
+    extras: ['cala', 'olivo'], accent: ['Blanco hueso', '#efe9dd'],
     line: 'Pocos tallos, líneas limpias y espacio para que cada flor respire.',
   },
 ];
 
 export const SIZES = [
-  { id: 'detalle', label: 'Un detalle', hint: 'Unos 7 tallos', stems: 7, format: 'ramillete de mano', line: 'Un ramillete pequeño, perfecto para una mesa o una taza bonita.' },
-  { id: 'abrazo', label: 'Un abrazo', hint: 'Unos 15 tallos', stems: 15, format: 'ramo mediano', line: 'Un ramo que se sostiene con las dos manos, como un abrazo.' },
-  { id: 'celebracion', label: 'Una gran celebración', hint: 'Más de 30 tallos', stems: 32, format: 'gran ramo', line: 'Un ramo generoso que llena la habitación y la ocasión.' },
+  { id: 'detalle', label: 'Un detalle', hint: 'Unos 7 tallos', stems: 7, height: 'unos 30 cm', format: 'ramillete de mano', line: 'Un ramillete pequeño, perfecto para una mesa o una taza bonita.' },
+  { id: 'abrazo', label: 'Un abrazo', hint: 'Unos 15 tallos', stems: 15, height: 'unos 45 cm', format: 'ramo mediano', line: 'Un ramo que se sostiene con las dos manos, como un abrazo.' },
+  { id: 'celebracion', label: 'Una gran celebración', hint: 'Más de 30 tallos', stems: 32, height: 'unos 60 cm', format: 'gran ramo', line: 'Un ramo generoso que llena la habitación y la ocasión.' },
 ];
+// the photographs show every emotion × style at this size; the chosen size is told in words
+export const PHOTO_SIZE = 'abrazo';
 
 const NAMES = {
   amor: { silvestre: 'Corazón de pradera', romantico: 'Abrazo de nube', minimalista: 'Un solo latido' },
@@ -133,27 +135,33 @@ export function summary(p, dedication) {
   ].filter(Boolean).join('\n');
 }
 
-// illustration recipes for the collection and occasion cards
+/** Path-traced photograph of a proposal or a card (scripts/render-bouquets.mjs). */
+export function photo(key) {
+  const base = `${import.meta.env.BASE_URL}images/ramos/${key}`;
+  return { src: `${base}.webp`, srcSet: `${base}-sm.webp 480w, ${base}.webp 960w` };
+}
+export const photoKey = (p) => `${p.emotion.id}-${p.style.id}`;
+
+// recipes for the collection and occasion photographs
 export const ART = {
-  temporada: { seed: 11, arrangement: 'wild', count: 12, wrap: 'kraft', flowers: ['peonia', 'ranunculo', 'margarita', 'tulipan'], fillers: ['eucalipto', 'espigas'], colors: ['#f2b48c', '#e58fa6', '#f6e7cf', '#f2cf5b'] },
-  preservadas: { seed: 23, arrangement: 'dome', count: 9, wrap: 'cloche', flowers: ['rosa', 'ranunculo'], fillers: ['espigas', 'lavanda'], colors: ['#c99f9c', '#d8c3a6', '#b79a8e', '#e9dcc6'], muted: true },
-  composiciones: { seed: 37, arrangement: 'low', count: 16, wrap: 'tray', flowers: ['rosa', 'peonia', 'anemona', 'ranunculo'], fillers: ['eucalipto', 'olivo'], colors: ['#f4c9d2', '#ffffff', '#e8c4c2', '#f6e7cf'], candles: true },
-  cumpleanos: { seed: 41, arrangement: 'wild', count: 11, wrap: 'kraft', flowers: ['gerbera', 'tulipan', 'cosmos'], fillers: ['paniculata', 'eucalipto'], colors: ['#f2cf5b', '#f08a6b', '#e46f9a', '#c9afe0'], confetti: true },
-  aniversarios: { seed: 53, arrangement: 'dome', count: 13, wrap: 'tissue', flowers: ['rosa', 'peonia'], fillers: ['eucalipto'], colors: ['#b8435a', '#e58fa6', '#f4c9d2'] },
-  bodas: { seed: 67, arrangement: 'cascade', count: 14, wrap: 'ribbon', flowers: ['peonia', 'rosa', 'anemona', 'cala'], fillers: ['eucalipto', 'paniculata', 'olivo'], colors: ['#ffffff', '#f6f0e4', '#f4e6e6'] },
-  detalles: { seed: 79, arrangement: 'single', count: 2, wrap: 'bud', flowers: ['tulipan', 'anemona'], fillers: ['olivo'], colors: ['#e58fa6', '#ffffff'] },
+  temporada: { seed: 11, arrangement: 'wild', count: 12, flowers: ['peonia', 'ranunculo', 'margarita', 'tulipan'], fillers: ['eucalipto', 'espigas'], colors: ['#f2b48c', '#e58fa6', '#f6e7cf', '#f2cf5b'] },
+  preservadas: { seed: 23, arrangement: 'dome', count: 9, flowers: ['rosa', 'ranunculo'], fillers: ['espigas', 'lavanda'], colors: ['#c99f9c', '#d8c3a6', '#b79a8e', '#e9dcc6'] },
+  composiciones: { seed: 37, arrangement: 'low', count: 16, flowers: ['rosa', 'peonia', 'anemona', 'ranunculo'], fillers: ['eucalipto', 'olivo'], colors: ['#f4c9d2', '#ffffff', '#e8c4c2', '#f6e7cf'] },
+  cumpleanos: { seed: 41, arrangement: 'wild', count: 11, flowers: ['gerbera', 'tulipan', 'cosmos'], fillers: ['paniculata', 'eucalipto'], colors: ['#f2cf5b', '#f08a6b', '#e46f9a', '#c9afe0'], confetti: true },
+  aniversarios: { seed: 53, arrangement: 'dome', count: 13, flowers: ['rosa', 'peonia'], fillers: ['eucalipto'], colors: ['#b8435a', '#e58fa6', '#f4c9d2'] },
+  bodas: { seed: 67, arrangement: 'cascade', count: 14, flowers: ['peonia', 'rosa', 'anemona', 'cala'], fillers: ['eucalipto', 'paniculata', 'olivo'], colors: ['#ffffff', '#f6f0e4', '#f4e6e6'] },
+  detalles: { seed: 79, arrangement: 'single', count: 2, flowers: ['tulipan', 'anemona'], fillers: ['olivo'], colors: ['#e58fa6', '#ffffff'] },
 };
 
-/** Illustration recipe for a proposal. */
+/** Bouquet recipe behind a proposal's photograph (scripts/render-bouquets.mjs). */
 export function artFor(p) {
   const arrangement = { silvestre: 'wild', romantico: 'dome', minimalista: 'line' }[p.style.id];
   const count = { detalle: 5, abrazo: 9, celebracion: 15 }[p.size.id] + (p.style.id === 'minimalista' ? -2 : 0);
   const seed = [...p.key].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
   return {
-    seed, arrangement, count, wrap: { twine: 'twine', tissue: 'tissue', vase: 'vase' }[p.style.wrap],
+    seed, arrangement, count,
     flowers: p.flowers.filter((f) => !FILLERS.has(f)),
     fillers: p.flowers.filter((f) => FILLERS.has(f)),
     colors: p.palette.map((c) => c.hex),
-    scale: { detalle: 0.82, abrazo: 1, celebracion: 1.12 }[p.size.id],
   };
 }

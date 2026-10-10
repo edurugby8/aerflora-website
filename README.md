@@ -5,12 +5,18 @@ Web de **Aerflora, floristería**: ramos de temporada, flores preservadas y comp
 ## Apartados
 
 - **Inicio**: el recorrido por la cabina con «Siempre hay una razón para florecer.», la invitación «Hay cosas que se dicen mejor con flores.» y el botón «Encuentra tu ramo».
-- **Encuentra tu ramo** (`#tu-ramo`): atelier en tres pasos (emoción, estilo, tamaño) que compone una propuesta con nombre, descripción, flores, paleta, ilustración SVG y dedicatoria editable. Reglas locales en `src/lib/bouquets.js`; sin servidor.
+- **Encuentra tu ramo** (`#tu-ramo`): atelier en tres pasos (emoción, estilo, tamaño) que compone una propuesta con nombre, descripción, flores, paleta, imagen del ramo y dedicatoria editable. Reglas locales en `src/lib/bouquets.js`; sin servidor.
 - **Ramos y flores** (`#flores`): colecciones Cielo Abierto (temporada), Nube Eterna (preservadas) y Puerta del Cielo (composiciones especiales).
 - **Flores para cada ocasión** (`#ocasiones`): cumpleaños, aniversarios, bodas y pequeños detalles.
 - **Sobre Aerflora** (`#nosotros`) y **Contacto** (`#contacto`, encargos y consultas por correo).
 
-Las tarjetas de colecciones y ocasiones usan ilustraciones botánicas SVG (`src/components/BouquetArt.jsx`); las imágenes de «Sobre Aerflora» y «Contacto» salen de la escena 3D (`npm run images`).
+**Imágenes de los ramos:** son recreaciones 3D, no fotografías, y la web lo indica junto al resultado. `scripts/render-bouquets.mjs` (`npm run photos`) las renderiza con un trazador de rayos (three-gpu-pathtracer) en un estudio virtual: fondo continuo de papel, softbox, contraluz, cartón de relleno y cámara física con desenfoque real. Las flores (`scripts/scene3d/botany.js`) se modelan pétalo a pétalo a escala real y el ramo se monta con las mismas reglas que la web (`compose()` en `src/lib/bouquets.js`):
+
+- 15 imágenes de resultado, una por emoción × estilo, en tamaño «Un abrazo»; el tamaño elegido se cuenta con texto y una escala.
+- 7 imágenes para las colecciones y las ocasiones.
+- Cada imagen en 960×1200 y en 480×600 (`-sm`), en `public/images/ramos/`.
+
+Las imágenes de «Sobre Aerflora» y «Contacto» salen de la escena 3D de la cabina (`npm run images`).
 
 **Contacto:** el correo está en `src/lib/contact.js`. Mientras termine en `.example`, la web no ofrece enlaces de correo: «Consultar este ramo» prepara el resumen y ofrece «Copiar mi propuesta». Al poner un correo real aparecen automáticamente los botones para escribir con la propuesta ya redactada.
 
@@ -41,6 +47,17 @@ npm run frames:extract -- footage/aerflora.mp4   # secuencia real (ver ASSETS.md
 npm run frames:3d                                 # renderiza la escena 3D provisional (scripts/scene3d, necesita Edge o Chrome)
 npm run frames:placeholder                        # secuencia 2D anterior, solo como respaldo
 ```
+
+Imágenes de los ramos (necesita Edge o Chrome con GPU; unos minutos por imagen, mejor con el equipo sin suspenderse):
+
+```bash
+npm run photos -- --samples=512                   # las 22 imágenes, como las publicadas
+npm run photos -- --only=amor-romantico,bodas     # solo algunas
+npm run photos -- --samples=64 --size=640x800     # borrador rápido
+npm run photos -- --from=gratitud-silvestre       # retomar una tanda larga
+```
+
+Cada imagen se guarda también a mitad de camino (cada 64 muestras): si el navegador se cae al final de un render largo, se conserva la última copia si ya tiene al menos 3/4 de las muestras.
 
 ## Publicación
 

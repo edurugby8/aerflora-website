@@ -62,8 +62,14 @@
   content: '\2713'; position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border-radius: 50%;
   display: grid; place-items: center; background: var(--olive); color: var(--cream); font-size: 14px; font-weight: 700;
 }
-.option-art { display: block; aspect-ratio: 1 / 1; border-radius: 14px; overflow: hidden; background: linear-gradient(180deg, #fbf3ee, #f3ece0); margin-bottom: 8px; }
-.option-svg { display: block; width: 100%; height: 100%; }
+.option-art { display: block; aspect-ratio: 1 / 1; border-radius: 14px; overflow: hidden; background: linear-gradient(180deg, #f6efe6, #ece3d6); margin-bottom: 8px; }
+.option-photo { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 32%; }
+.size-icon { display: block; width: 100%; height: 100%; }
+.size-icon .ruler, .size-icon .tick { stroke: rgba(31, 39, 27, 0.35); stroke-width: 1; }
+.size-icon text { font: 500 7px var(--font-mono); fill: rgba(31, 39, 27, 0.55); }
+.size-icon .shape { fill: rgba(94, 106, 70, 0.14); stroke: var(--olive); stroke-width: 1.2; }
+.size-icon .shape-dome { fill: rgba(214, 150, 160, 0.32); stroke: #c5848f; }
+.option.is-selected .size-icon .shape-dome { fill: rgba(214, 150, 160, 0.55); }
 .option-label { font-family: var(--font-serif); font-size: clamp(22px, 1.9vw, 28px); line-height: 1.05; padding: 0 6px; }
 .option-hint { font-size: 14px; line-height: 1.4; color: var(--ink-soft); padding: 0 6px; }
 .finder-nav { display: flex; justify-content: center; gap: 12px; margin-top: clamp(24px, 3vw, 36px); }
@@ -74,13 +80,29 @@
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 64px);
   align-items: start; max-width: 1180px; margin: 0 auto;
 }
-.result-art {
-  position: sticky; top: calc(var(--header-h) + 20px);
-  aspect-ratio: 4 / 5; border-radius: 28px; overflow: hidden;
-  background: radial-gradient(70% 60% at 50% 35%, #ffffff, #f6ece4 60%, #eadfce);
+.result-art { position: sticky; top: calc(var(--header-h) + 20px); margin: 0; }
+.result-frame {
+  aspect-ratio: 4 / 5; border-radius: 28px; overflow: hidden; background: #ece4d8;
   box-shadow: 0 30px 70px -40px rgba(31, 39, 27, 0.55);
 }
-.result-art svg { width: 100%; height: 100%; display: block; }
+.result-photo { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+/* reveal: the photograph comes up like a print developing */
+.result-frame.is-loaded .result-photo { animation: develop 1.15s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+@keyframes develop {
+  from { opacity: 0; transform: scale(1.045); filter: blur(10px) saturate(0.4) brightness(1.08); }
+  55% { opacity: 1; }
+  to { opacity: 1; transform: none; filter: none; }
+}
+.result-art figcaption { display: grid; gap: 6px; margin-top: 14px; padding: 0 6px; }
+.size-scale { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-soft); }
+.size-scale strong { color: var(--ink); font-weight: 600; }
+.size-bars { display: inline-flex; align-items: flex-end; gap: 3px; height: 20px; flex: none; }
+.size-bars i { width: 7px; border-radius: 2px; background: rgba(31, 39, 27, 0.16); }
+.size-bars i:nth-child(1) { height: 45%; }
+.size-bars i:nth-child(2) { height: 72%; }
+.size-bars i:nth-child(3) { height: 100%; }
+.size-bars i.is-on { background: var(--olive); }
+.result-note { font-size: 12.5px; line-height: 1.45; color: var(--ink-soft); }
 .result-copy { animation: rise 0.6s ease both 0.15s; }
 .result-name { font-family: var(--font-serif); font-weight: 400; font-size: clamp(40px, 5vw, 72px); line-height: 1; letter-spacing: -0.02em; }
 .result-name:focus { outline: none; }
@@ -117,23 +139,8 @@
 .summary .btn { justify-self: start; }
 .summary-status { min-height: 1.2em; font-size: 14px; color: var(--olive-deep); font-weight: 600; }
 
-/* reveal: stems grow, then blooms open (about a second, never blocking) */
-.bouquet-art .bloom { transform-box: fill-box; transform-origin: center; }
-.bouquet-art.is-animated .stem { stroke-dasharray: 1; stroke-dashoffset: 1; animation: stem-grow 0.55s ease-out forwards; }
-.bouquet-art.is-animated .bloom { animation: bloom-in 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.15) both; animation-delay: calc(var(--i) * 32ms + 180ms); }
-@keyframes stem-grow { to { stroke-dashoffset: 0; } }
-@keyframes bloom-in { from { opacity: 0; transform: scale(0.25) rotate(-30deg); } to { opacity: 1; transform: none; } }
 @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
-/* illustrated cards */
-.art-bg { background: linear-gradient(180deg, #fbf3ee, #f1e6d8); }
-.art-bg svg { width: 100%; height: 100%; display: block; }
-.art-preservadas { background: linear-gradient(180deg, #f3ece3, #e5d9c8); }
-.art-composiciones { background: linear-gradient(180deg, #f2f2ea, #e3e6d8); }
-.art-cumpleanos { background: linear-gradient(180deg, #fdf3dc, #f6e4cf); }
-.art-aniversarios { background: linear-gradient(180deg, #fbebee, #f2dcdc); }
-.art-bodas { background: linear-gradient(180deg, #f1f4f4, #e3e9e7); }
-.art-detalles { background: linear-gradient(180deg, #f6efe8, #ece2d6); }
 .card-cta {
   align-self: flex-start; margin-top: auto; padding: 10px 0 0; border: 0; background: none; cursor: pointer;
   font: 600 14px/1 var(--font-sans); color: var(--olive-deep);
@@ -168,6 +175,7 @@
   .card-occasion .card-body { gap: 6px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .bouquet-art.is-animated .stem, .bouquet-art.is-animated .bloom, .result-copy, .summary { animation: none !important; stroke-dashoffset: 0; }
+  .result-frame .result-photo, .result-copy, .summary { animation: none !important; }
+  .result-frame.is-loaded .result-photo { opacity: 1; }
   .option:hover { transform: none; }
 }

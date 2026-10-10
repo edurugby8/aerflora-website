@@ -1,7 +1,6 @@
 // "Haz florecer lo que sientes": three quick choices reveal a bouquet.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import BouquetArt, { Bloom } from './BouquetArt.jsx';
-import { EMOTIONS, STYLES, SIZES, OCCASIONS, FLOWERS, compose, artFor, dedicationFor, summary } from '../lib/bouquets.js';
+import { EMOTIONS, STYLES, SIZES, OCCASIONS, FLOWERS, PHOTO_SIZE, compose, dedicationFor, summary, photo, photoKey } from '../lib/bouquets.js';
 import { hasRealContact, mailto } from '../lib/contact.js';
 
 const STEPS = [
@@ -11,33 +10,69 @@ const STEPS = [
 ];
 const EMPTY = { emotion: null, style: null, size: null };
 const prefersReduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const CARD_SIZES = '(max-width: 760px) 46vw, 240px';
+const RESULT_SIZES = '(max-width: 900px) 92vw, 520px';
+const photoSize = SIZES.find((s) => s.id === PHOTO_SIZE);
 
-// small illustrations for the option cards
-const STYLE_ART = {
-  silvestre: { seed: 5, arrangement: 'wild', count: 6, wrap: 'twine', flowers: ['margarita', 'cosmos'], fillers: ['espigas', 'paniculata'], colors: ['#f6e7cf', '#e8c4c2', '#c9afe0'] },
-  romantico: { seed: 6, arrangement: 'dome', count: 8, wrap: 'tissue', flowers: ['rosa', 'peonia', 'ranunculo'], fillers: ['eucalipto'], colors: ['#f4c9d2', '#e8c4c2', '#f6e7cf'] },
-  minimalista: { seed: 7, arrangement: 'line', count: 3, wrap: 'vase', flowers: ['cala', 'anemona'], fillers: ['olivo'], colors: ['#efe9dd', '#ffffff', '#e8c4c2'] },
-};
-const SIZE_ART = {
-  detalle: { seed: 9, arrangement: 'dome', count: 3, wrap: 'kraft', flowers: ['ranunculo', 'rosa'], fillers: ['eucalipto'], colors: ['#f4c9d2', '#f6e7cf'], scale: 0.62 },
-  abrazo: { seed: 10, arrangement: 'dome', count: 8, wrap: 'kraft', flowers: ['ranunculo', 'rosa', 'peonia'], fillers: ['eucalipto'], colors: ['#f4c9d2', '#f6e7cf', '#e58fa6'], scale: 0.9 },
-  celebracion: { seed: 12, arrangement: 'dome', count: 16, wrap: 'kraft', flowers: ['ranunculo', 'rosa', 'peonia'], fillers: ['eucalipto', 'paniculata'], colors: ['#f4c9d2', '#f6e7cf', '#e58fa6', '#ffffff'], scale: 1.18 },
-};
+function Photo({ k, sizes, className, alt = '', ...rest }) {
+  const p = photo(k);
+  return <img className={className} src={p.src} srcSet={p.srcSet} sizes={sizes} alt={alt} width="480" height="600" decoding="async" {...rest} />;
+}
 
-function EmotionArt({ e }) {
+// sizes as a simple silhouette against a ruler (30, 45 or 60 cm)
+const SIZE_CM = { detalle: 30, abrazo: 45, celebracion: 60 };
+function SizeIcon({ size }) {
+  const k = 1.25, ground = 94, cm = SIZE_CM[size], w = cm * 0.8, top = ground - cm * k, dome = top + w * 0.3;
   return (
-    <svg viewBox="-60 -50 120 100" className="option-svg" aria-hidden="true">
-      <g transform="translate(-24 6)"><Bloom type={e.flowers[0]} r={24} c={e.palette[1][1]} /></g>
-      <g transform="translate(24 10)"><Bloom type={e.flowers[0]} r={20} c={e.palette[2][1]} /></g>
-      <g transform="translate(0 -12)"><Bloom type={e.flowers[0]} r={28} c={e.palette[0][1]} /></g>
+    <svg className="size-icon" viewBox="0 0 120 100" aria-hidden="true">
+      <line className="ruler" x1="18" x2="18" y1={ground - 62 * k} y2={ground} />
+      {[0, 15, 30, 45, 60].map((c) => (
+        <g key={c}>
+          <line className="tick" x1="14" x2="22" y1={ground - c * k} y2={ground - c * k} />
+          <text x="25" y={ground - c * k + 2.4}>{c}{c === 60 ? ' cm' : ''}</text>
+        </g>
+      ))}
+      <path className="shape" d={`M${72 - w * 0.1} ${ground} L${72 - w * 0.4} ${dome + w * 0.1} L${72 + w * 0.4} ${dome + w * 0.1} L${72 + w * 0.1} ${ground} Z`} />
+      <ellipse className="shape shape-dome" cx="72" cy={dome} rx={w / 2} ry={w * 0.3} />
     </svg>
   );
 }
 
-function OptionArt({ stepKey, option }) {
-  if (stepKey === 'emotion') return <EmotionArt e={option} />;
-  const recipe = stepKey === 'style' ? STYLE_ART[option.id] : SIZE_ART[option.id];
-  return <BouquetArt recipe={recipe} className="option-svg" title="" />;
+// option cards: each emotion as a romantic bouquet, each style in the emotion already
+// chosen, and each size as a silhouette with its height
+function OptionArt({ stepKey, option, answers }) {
+  if (stepKey === 'emotion') return <Photo k={`${option.id}-romantico`} sizes={CARD_SIZES} className="option-photo" loading="lazy" />;
+  if (stepKey === 'style') return <Photo k={`${answers.emotion ?? 'amor'}-${option.id}`} sizes={CARD_SIZES} className="option-photo" loading="lazy" />;
+  return <SizeIcon size={option.id} />;
+}
+
+function SizeScale({ size }) {
+  const s = SIZES.find((x) => x.id === size);
+  return (
+    <p className="size-scale">
+      <span className="size-bars" aria-hidden="true">{SIZES.map((x) => <i key={x.id} className={x.id === size ? 'is-on' : ''} />)}</span>
+      <span><strong>{s.label}</strong> · {s.hint.toLowerCase()} · {s.height} de alto</span>
+    </p>
+  );
+}
+
+/** The bouquet's photograph, revealed like a print coming up once it has loaded. */
+function ResultPhoto({ proposal }) {
+  const [loaded, setLoaded] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => { if (ref.current?.complete) setLoaded(true); }, []);
+  const alt = `Ramo ${proposal.name}: ${proposal.flowers.map((f) => FLOWERS[f].toLowerCase()).join(', ')}, en tonos ${proposal.palette.slice(0, 3).map((c) => c.name.toLowerCase()).join(', ')}.`;
+  return (
+    <figure className="result-art">
+      <div className={`result-frame${loaded ? ' is-loaded' : ''}`}>
+        <Photo k={photoKey(proposal)} sizes={RESULT_SIZES} className="result-photo" alt={alt} ref={ref} onLoad={() => setLoaded(true)} onError={() => setLoaded(true)} />
+      </div>
+      <figcaption>
+        <SizeScale size={proposal.size.id} />
+        <span className="result-note">Recreación 3D orientativa, en tamaño «{photoSize.label}». Cada ramo se monta a mano con flor de temporada.</span>
+      </figcaption>
+    </figure>
+  );
 }
 
 export default function BouquetFinder() {
@@ -58,12 +93,18 @@ export default function BouquetFinder() {
   const complete = STEPS.every((s) => answers[s.key]);
   const firstMissing = STEPS.findIndex((s) => !answers[s.key]);
   const proposal = useMemo(() => (complete ? compose(answers, occasion) : null), [answers, occasion, complete]);
-  const art = useMemo(() => (proposal ? artFor(proposal) : null), [proposal]);
 
   // the suggested dedication follows the emotion until the visitor writes their own
   useEffect(() => {
     if (!dedicationEdited) setDedication(dedicationFor(answers.emotion));
   }, [answers.emotion, dedicationEdited]);
+
+  // fetch the bouquet's photograph as soon as emotion and style are known
+  useEffect(() => {
+    if (!answers.emotion || !answers.style) return;
+    const p = photo(`${answers.emotion}-${answers.style}`), img = new Image();
+    img.sizes = RESULT_SIZES; img.srcset = p.srcSet; img.src = p.src;
+  }, [answers.emotion, answers.style]);
 
   // move focus to the new question / result (and bring it into view)
   useEffect(() => {
@@ -162,7 +203,7 @@ export default function BouquetFinder() {
             {current.options.map((o) => (
               <label key={o.id} className={`option${answers[current.key] === o.id ? ' is-selected' : ''}`}>
                 <input type="radio" name={`finder-${current.key}`} value={o.id} checked={answers[current.key] === o.id} onChange={() => choose(current.key, o.id)} />
-                <span className="option-art"><OptionArt stepKey={current.key} option={o} /></span>
+                <span className="option-art"><OptionArt stepKey={current.key} option={o} answers={answers} /></span>
                 <span className="option-label">{o.label}</span>
                 <span className="option-hint">{o.hint}</span>
               </label>
@@ -175,9 +216,7 @@ export default function BouquetFinder() {
         </fieldset>
       ) : proposal && (
         <div className="result" key={proposal.key}>
-          <div className="result-art">
-            <BouquetArt recipe={art} animate title={`Ilustración del ramo ${proposal.name}`} />
-          </div>
+          <ResultPhoto proposal={proposal} key={photoKey(proposal)} />
           <div className="result-copy">
             <p className="eyebrow">Tu ramo Aerflora{proposal.occasion ? ` · ${proposal.occasion}` : ''}</p>
             <h3 className="result-name" ref={focusRef} tabIndex={-1}>{proposal.name}</h3>

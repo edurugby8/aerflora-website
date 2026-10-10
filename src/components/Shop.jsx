@@ -1,6 +1,5 @@
 // The florist's content: collections, occasions, about and contact.
-import BouquetArt from './BouquetArt.jsx';
-import { ART } from '../lib/bouquets.js';
+import { photo } from '../lib/bouquets.js';
 import { CONTACT_EMAIL, hasRealContact, mailto } from '../lib/contact.js';
 
 const IMG = `${import.meta.env.BASE_URL}images/`;
@@ -9,28 +8,33 @@ const COLLECTIONS = [
   {
     art: 'temporada', name: 'Colección Cielo Abierto', title: 'Ramos de temporada',
     text: 'Peonías, ranúnculos y verdes frescos que cambian con cada estación. Cada ramo se compone a mano el mismo día en que sale de nuestro taller.',
-    tag: 'Cambia cada estación',
+    tag: 'Cambia cada estación', alt: 'Ramo de temporada en papel kraft con peonías, ranúnculos, margaritas y tulipanes',
   },
   {
     art: 'preservadas', name: 'Colección Nube Eterna', title: 'Flores preservadas',
     text: 'Rosas y espigas tratadas para conservar su color y su forma durante meses, sin agua ni cuidados. Un recuerdo que se queda contigo.',
-    tag: 'Duran meses',
+    tag: 'Duran meses', alt: 'Rosas preservadas en tonos empolvados bajo una campana de cristal',
   },
   {
     art: 'composiciones', name: 'Colección Puerta del Cielo', title: 'Composiciones especiales',
     text: 'Centros de mesa, arcos y piezas a medida para espacios y momentos únicos. Las diseñamos contigo, de la primera idea al último pétalo.',
-    tag: 'Diseño a medida',
+    tag: 'Diseño a medida', alt: 'Centro de mesa bajo de rosas, peonías y anémonas con dos velas encendidas',
   },
 ];
 
 const OCCASIONS = [
-  { id: 'cumpleanos', title: 'Cumpleaños', text: 'Color y alegría para soplar las velas: ramos vivos que se recuerdan mucho después de la fiesta.' },
-  { id: 'aniversarios', title: 'Aniversarios', text: 'Rosas, recuerdos compartidos y una nota escrita a mano para celebrar el camino recorrido.' },
-  { id: 'bodas', title: 'Bodas', text: 'Ramos de novia, centros y detalles que acompañan el sí quiero de principio a fin.' },
-  { id: 'detalles', title: 'Pequeños detalles', text: 'Un gesto sin motivo: una flor, unas palabras y una sonrisa inesperada.' },
+  { id: 'cumpleanos', title: 'Cumpleaños', text: 'Color y alegría para soplar las velas: ramos vivos que se recuerdan mucho después de la fiesta.', alt: 'Gerberas, tulipanes y cosmos de colores en un tarro de cristal, con confeti sobre la mesa' },
+  { id: 'aniversarios', title: 'Aniversarios', text: 'Rosas, recuerdos compartidos y una nota escrita a mano para celebrar el camino recorrido.', alt: 'Ramo de rosas rojas y peonías rosas envuelto en papel de seda' },
+  { id: 'bodas', title: 'Bodas', text: 'Ramos de novia, centros y detalles que acompañan el sí quiero de principio a fin.', alt: 'Ramo de novia blanco con peonías, rosas, anémonas y calas, atado con cinta de raso' },
+  { id: 'detalles', title: 'Pequeños detalles', text: 'Un gesto sin motivo: una flor, unas palabras y una sonrisa inesperada.', alt: 'Un tulipán rosa y una anémona blanca en un pequeño búcaro de cristal' },
 ];
 
 const openFinder = (occasion) => window.dispatchEvent(new CustomEvent('aerflora:finder', { detail: { occasion } }));
+
+function CardPhoto({ k, alt, sizes }) {
+  const p = photo(k);
+  return <img src={p.src} srcSet={p.srcSet} sizes={sizes} alt={alt} loading="lazy" decoding="async" width="480" height="600" />;
+}
 
 function SectionHead({ eyebrow, title, intro }) {
   return (
@@ -54,7 +58,7 @@ export default function Shop() {
         <div className="cards cards-3">
           {COLLECTIONS.map((c) => (
             <article className="card" key={c.title}>
-              <div className={`card-media art-bg art-${c.art}`}><BouquetArt recipe={ART[c.art]} title={`Ilustración: ${c.title.toLowerCase()}`} /></div>
+              <div className="card-media"><CardPhoto k={c.art} alt={c.alt} sizes="(max-width: 760px) 92vw, (max-width: 1080px) 46vw, 380px" /></div>
               <div className="card-body">
                 <p className="card-kicker">{c.name}</p>
                 <h3 className="card-title">{c.title}</h3>
@@ -80,7 +84,7 @@ export default function Shop() {
         <div className="cards cards-4">
           {OCCASIONS.map((o) => (
             <article className="card card-occasion" key={o.id}>
-              <div className={`card-media art-bg art-${o.id}`}><BouquetArt recipe={ART[o.id]} title={`Ilustración: ${o.title.toLowerCase()}`} /></div>
+              <div className="card-media"><CardPhoto k={o.id} alt={o.alt} sizes="(max-width: 760px) 38vw, (max-width: 1080px) 46vw, 280px" /></div>
               <div className="card-body">
                 <h3 className="card-title">{o.title}</h3>
                 <p className="card-text">{o.text}</p>
