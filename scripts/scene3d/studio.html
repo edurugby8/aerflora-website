@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Aerflora bouquet studio (offline path tracer)</title>
+    <style>html,body{margin:0;background:#000}canvas{display:block}</style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/node_modules/three/build/three.module.js",
+          "three/addons/": "/node_modules/three/examples/jsm/",
+          "three/examples/jsm/": "/node_modules/three/examples/jsm/",
+          "three-mesh-bvh": "/node_modules/three-mesh-bvh/src/index.js",
+          "three-gpu-pathtracer": "/node_modules/three-gpu-pathtracer/src/index.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <script type="module">
+      import { setup, render, snapshot, gpu, probe } from './studio.js';
+      window.STUDIO = { setup, render, snapshot, gpu, probe, ready: true };
+    </script>
+  </body>
+</html>

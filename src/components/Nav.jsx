@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 const LINKS = [
-  ['#flores', 'Flores'],
+  ['#flores', 'Colecciones'],
   ['#ocasiones', 'Ocasiones'],
   ['#nosotros', 'Nosotros'],
   ['#contacto', 'Contacto'],
@@ -34,7 +34,7 @@ export default function Nav() {
       </a>
       <nav id="nav-links" className="nav-links" aria-label="Principal">
         {LINKS.map(([href, label]) => <a key={href} href={href} onClick={close}>{label}</a>)}
-        <a className="btn btn-primary btn-small nav-cta" href="#contacto" onClick={close}>Encargar</a>
+        <a className="btn btn-primary btn-small nav-cta" href="#tu-ramo" onClick={close}>Encuentra tu ramo</a>
       </nav>
       <button
         type="button"

@@ -1,32 +1,40 @@
 // The florist's content: collections, occasions, about and contact.
+import { photo } from '../lib/bouquets.js';
+import { CONTACT_EMAIL, hasRealContact, mailto } from '../lib/contact.js';
+
 const IMG = `${import.meta.env.BASE_URL}images/`;
-const MAIL = 'hola@aerflora.example';
-const mailto = (subject) => `mailto:${MAIL}?subject=${encodeURIComponent(subject)}`;
 
 const COLLECTIONS = [
   {
-    img: 'ramos-temporada', name: 'Colección Cielo Abierto', title: 'Ramos de temporada',
-    text: 'Rosas de jardín, orquídeas y verdes frescos que cambian con cada estación. Cada ramo se compone a mano el mismo día en que sale de nuestro taller.',
-    tag: 'Cambia cada estación',
+    art: 'temporada', name: 'Colección Cielo Abierto', title: 'Ramos de temporada',
+    text: 'Peonías, ranúnculos y verdes frescos que cambian con cada estación. Cada ramo se compone a mano el mismo día en que sale de nuestro taller.',
+    tag: 'Cambia cada estación', alt: 'Ramo de temporada en papel kraft con peonías, ranúnculos, margaritas y tulipanes',
   },
   {
-    img: 'flores-preservadas', name: 'Colección Nube Eterna', title: 'Flores preservadas',
-    text: 'Flores naturales tratadas para conservar su color y su forma durante meses, sin agua ni cuidados. Un recuerdo que se queda contigo.',
-    tag: 'Duran meses',
+    art: 'preservadas', name: 'Colección Nube Eterna', title: 'Flores preservadas',
+    text: 'Rosas y espigas tratadas para conservar su color y su forma durante meses, sin agua ni cuidados. Un recuerdo que se queda contigo.',
+    tag: 'Duran meses', alt: 'Rosas preservadas en tonos empolvados bajo una campana de cristal',
   },
   {
-    img: 'composiciones-especiales', name: 'Colección Puerta del Cielo', title: 'Composiciones especiales',
-    text: 'Arcos florales, centros de mesa y piezas a medida para espacios y momentos únicos. Las diseñamos contigo, de la primera idea al último pétalo.',
-    tag: 'Diseño a medida',
+    art: 'composiciones', name: 'Colección Puerta del Cielo', title: 'Composiciones especiales',
+    text: 'Centros de mesa, arcos y piezas a medida para espacios y momentos únicos. Las diseñamos contigo, de la primera idea al último pétalo.',
+    tag: 'Diseño a medida', alt: 'Centro de mesa bajo de rosas, peonías y anémonas con dos velas encendidas',
   },
 ];
 
 const OCCASIONS = [
-  { img: 'cumpleanos', title: 'Cumpleaños', text: 'Color y alegría para soplar las velas: ramos vivos que se recuerdan mucho después de la fiesta.' },
-  { img: 'aniversarios', title: 'Aniversarios', text: 'Rosas, recuerdos compartidos y una nota escrita a mano para celebrar el camino recorrido.' },
-  { img: 'bodas', title: 'Bodas', text: 'Ramos de novia, arcos y centros que acompañan el sí quiero de principio a fin.' },
-  { img: 'detalles', title: 'Pequeños detalles', text: 'Un gesto sin motivo: una flor, unas palabras y una sonrisa inesperada.' },
+  { id: 'cumpleanos', title: 'Cumpleaños', text: 'Color y alegría para soplar las velas: ramos vivos que se recuerdan mucho después de la fiesta.', alt: 'Gerberas, tulipanes y cosmos de colores en un tarro de cristal, con confeti sobre la mesa' },
+  { id: 'aniversarios', title: 'Aniversarios', text: 'Rosas, recuerdos compartidos y una nota escrita a mano para celebrar el camino recorrido.', alt: 'Ramo de rosas rojas y peonías rosas envuelto en papel de seda' },
+  { id: 'bodas', title: 'Bodas', text: 'Ramos de novia, centros y detalles que acompañan el sí quiero de principio a fin.', alt: 'Ramo de novia blanco con peonías, rosas, anémonas y calas, atado con cinta de raso' },
+  { id: 'detalles', title: 'Pequeños detalles', text: 'Un gesto sin motivo: una flor, unas palabras y una sonrisa inesperada.', alt: 'Un tulipán rosa y una anémona blanca en un pequeño búcaro de cristal' },
 ];
+
+const openFinder = (occasion) => window.dispatchEvent(new CustomEvent('aerflora:finder', { detail: { occasion } }));
+
+function CardPhoto({ k, alt, sizes }) {
+  const p = photo(k);
+  return <img src={p.src} srcSet={p.srcSet} sizes={sizes} alt={alt} loading="lazy" decoding="async" width="480" height="600" />;
+}
 
 function SectionHead({ eyebrow, title, intro }) {
   return (
@@ -40,7 +48,7 @@ function SectionHead({ eyebrow, title, intro }) {
 
 export default function Shop() {
   return (
-    <div className="shop">
+    <>
       <section className="section" id="flores">
         <SectionHead
           eyebrow="Ramos y flores"
@@ -50,14 +58,16 @@ export default function Shop() {
         <div className="cards cards-3">
           {COLLECTIONS.map((c) => (
             <article className="card" key={c.title}>
-              <div className="card-media"><img src={`${IMG}${c.img}.webp`} alt="" loading="lazy" width="900" height="1125" /></div>
+              <div className="card-media"><CardPhoto k={c.art} alt={c.alt} sizes="(max-width: 760px) 92vw, (max-width: 1080px) 46vw, 380px" /></div>
               <div className="card-body">
                 <p className="card-kicker">{c.name}</p>
                 <h3 className="card-title">{c.title}</h3>
                 <p className="card-text">{c.text}</p>
                 <div className="card-foot">
                   <span className="card-tag">{c.tag}</span>
-                  <a className="card-link" href={mailto(`Consulta: ${c.title}`)}>Consultar <span aria-hidden="true">→</span></a>
+                  {hasRealContact
+                    ? <a className="card-link" href={mailto(`Consulta: ${c.title}`)}>Consultar <span aria-hidden="true">→</span></a>
+                    : <a className="card-link" href="#tu-ramo">Crear el mío <span aria-hidden="true">→</span></a>}
                 </div>
               </div>
             </article>
@@ -69,15 +79,18 @@ export default function Shop() {
         <SectionHead
           eyebrow="Flores para cada ocasión"
           title="Siempre hay un motivo"
-          intro="Grandes celebraciones o gestos pequeños: preparamos cada ramo pensando en la persona que lo va a recibir."
+          intro="Elige la ocasión y te ayudamos a crear el ramo: empezamos con lo que quieres celebrar ya seleccionado."
         />
         <div className="cards cards-4">
           {OCCASIONS.map((o) => (
-            <article className="card card-occasion" key={o.title}>
-              <div className="card-media"><img src={`${IMG}${o.img}.webp`} alt="" loading="lazy" width="900" height="1125" /></div>
+            <article className="card card-occasion" key={o.id}>
+              <div className="card-media"><CardPhoto k={o.id} alt={o.alt} sizes="(max-width: 760px) 38vw, (max-width: 1080px) 46vw, 280px" /></div>
               <div className="card-body">
                 <h3 className="card-title">{o.title}</h3>
                 <p className="card-text">{o.text}</p>
+                <button type="button" className="card-cta" onClick={() => openFinder(o.id)}>
+                  Crear este ramo <span aria-hidden="true">→</span>
+                </button>
               </div>
             </article>
           ))}
@@ -110,16 +123,18 @@ export default function Shop() {
           <p className="eyebrow">Contacto</p>
           <h2 className="section-title">¿Tienes una idea en mente?</h2>
           <p className="section-intro">
-            Cuéntanos qué quieres celebrar y prepararemos un ramo a tu medida. Escríbenos para encargar
-            un ramo o para consultar cualquier idea, por pequeña que sea.
+            Cuéntanos qué quieres celebrar y prepararemos un ramo a tu medida. Si aún no lo tienes claro,
+            empieza por nuestro atelier: en un minuto tendrás una propuesta para compartir.
           </p>
           <div className="contact-actions">
-            <a className="btn btn-primary" href={mailto('Encargo de ramo')}>Encargar un ramo</a>
-            <a className="btn btn-outline" href={mailto('Consulta de una idea')}>Consultar una idea</a>
+            <a className="btn btn-primary" href="#tu-ramo">Encuentra tu ramo</a>
+            {hasRealContact && <a className="btn btn-outline" href={mailto('Consulta de una idea')}>Escríbenos</a>}
           </div>
-          <p className="contact-mail">o escríbenos a <a href={`mailto:${MAIL}`}>{MAIL}</a></p>
+          {hasRealContact
+            ? <p className="contact-mail">o escríbenos a <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
+            : <p className="contact-mail">Muy pronto publicaremos nuestro correo de encargos. Mientras tanto, crea tu propuesta y cópiala para enviárnosla.</p>}
         </div>
       </section>
-    </div>
+    </>
   );
 }
