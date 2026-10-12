@@ -49,6 +49,8 @@ section[tabindex="-1"]:focus, [tabindex="-1"]:focus:not(:focus-visible) { outlin
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 48px; padding: 0 24px; border-radius: 999px;
+  /* the same box for links and buttons: no browser bevel, same 1px edge as the outlined ones */
+  border: 1px solid transparent; cursor: pointer;
   font: 600 15px/1 var(--font-sans); letter-spacing: 0.01em; text-decoration: none;
   transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 }
