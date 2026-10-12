@@ -3,6 +3,7 @@
 export default function HeroCopy() {
   return (
     <div className="hero-copy">
+      <span className="hero-scrim" aria-hidden="true" />
       <p className="hero-eyebrow">Floristería<span className="hero-eyebrow-more"> · Flores que viajan entre nubes</span></p>
       <h1 className="hero-title">Siempre hay una razón para florecer.</h1>
       <p className="hero-invite">Hay cosas que se dicen mejor con flores.</p>

@@ -18,15 +18,17 @@ export class FrameSequence {
     this.listeners = new Set();
     this.aborted = false;
     this.order = buildOrder(count);
-    // the first coarse pass (every 8th frame + both ends) must load before reveal
+    // the first coarse pass (every 8th frame + both ends) covers the whole journey: the loader reports it
     this.essential = new Set(this.order.slice(0, essentialCount(count)));
   }
 
   onFrame(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
 
   /**
-   * Starts loading. Resolves once the essential frames are in (or rejects if
-   * too many of them failed). Remaining frames keep loading afterwards.
+   * Starts loading. Resolves as soon as the opening frame is in, so the page
+   * can be used right away; everything else keeps streaming and the nearest
+   * loaded frame is drawn meanwhile. Rejects if the opening frame or too many
+   * of the essential ones fail.
    */
   load(onProgress) {
     let essentialDone = 0, essentialFailed = 0;
@@ -36,10 +38,9 @@ export class FrameSequence {
     return new Promise((resolve, reject) => {
       let settled = false;
       const settle = () => {
-        if (settled || essentialDone + essentialFailed < essentialTotal) return;
-        settled = true;
-        if (essentialFailed > essentialTotal * 0.2 || !this.images[0]) reject(new Error('frame sequence unavailable'));
-        else resolve();
+        if (settled) return;
+        if (this.failed[0] || essentialFailed > essentialTotal * 0.2) { settled = true; reject(new Error('frame sequence unavailable')); return; }
+        if (this.images[0]) { settled = true; resolve(); }
       };
 
       const next = () => {

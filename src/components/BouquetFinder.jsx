@@ -1,7 +1,8 @@
 // "Haz florecer lo que sientes": three quick choices reveal a bouquet.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { EMOTIONS, STYLES, SIZES, OCCASIONS, FLOWERS, PHOTO_SIZE, compose, dedicationFor, summary, photo, photoKey } from '../lib/bouquets.js';
-import { hasRealContact, mailto } from '../lib/contact.js';
+import { EMOTIONS, STYLES, SIZES, CONTEXTS, FLOWERS, compose, contextPrefix, dedicationFor, summary, photo, photoKey } from '../lib/bouquets.js';
+import { renderBoardingCard, download, cardFilename } from '../lib/boardingCard.js';
+import { setLocation } from '../lib/navigate.js';
 
 const STEPS = [
   { key: 'emotion', label: 'Emoción', question: '¿Qué quieres expresar?', options: EMOTIONS },
@@ -12,7 +13,7 @@ const EMPTY = { emotion: null, style: null, size: null };
 const prefersReduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const CARD_SIZES = '(max-width: 760px) 46vw, 240px';
 const RESULT_SIZES = '(max-width: 900px) 92vw, 520px';
-const photoSize = SIZES.find((s) => s.id === PHOTO_SIZE);
+const labelOf = (key, id) => STEPS.find((s) => s.key === key).options.find((o) => o.id === id)?.label;
 
 function Photo({ k, sizes, className, alt = '', ...rest }) {
   const p = photo(k);
@@ -56,12 +57,13 @@ function SizeScale({ size }) {
   );
 }
 
-/** The bouquet's photograph, revealed like a print coming up once it has loaded. */
+/** The bouquet's image, revealed like a print coming up once it has loaded. */
 function ResultPhoto({ proposal }) {
   const [loaded, setLoaded] = useState(false);
   const ref = useRef(null);
   useEffect(() => { if (ref.current?.complete) setLoaded(true); }, []);
-  const alt = `Ramo ${proposal.name}: ${proposal.flowers.map((f) => FLOWERS[f].toLowerCase()).join(', ')}, en tonos ${proposal.palette.slice(0, 3).map((c) => c.name.toLowerCase()).join(', ')}.`;
+  // the renders show each emotion × style; the caption never claims a size
+  const alt = `Recreación 3D de un ramo de estilo ${proposal.style.label.toLowerCase()} en tonos ${proposal.palette.slice(0, 3).map((c) => c.name.toLowerCase()).join(', ')}.`;
   return (
     <figure className="result-art">
       <div className={`result-frame${loaded ? ' is-loaded' : ''}`}>
@@ -69,7 +71,7 @@ function ResultPhoto({ proposal }) {
       </div>
       <figcaption>
         <SizeScale size={proposal.size.id} />
-        <span className="result-note">Recreación 3D orientativa, en tamaño «{photoSize.label}». Cada ramo se monta a mano con flor de temporada.</span>
+        <span className="result-note">Recreación 3D orientativa del estilo y la paleta. Cada ramo se compone a mano con flor de temporada.</span>
       </figcaption>
     </figure>
   );
@@ -79,32 +81,36 @@ export default function BouquetFinder() {
   const [answers, setAnswers] = useState(EMPTY);
   const [step, setStep] = useState(0); // 0–2 questions, 3 = the bouquet
   const [editing, setEditing] = useState(false); // came back from the result to change one answer
-  const [occasion, setOccasion] = useState(null);
+  const [context, setContext] = useState(null); // an occasion or collection the visitor came from
   const [dedication, setDedication] = useState('');
   const [dedicationEdited, setDedicationEdited] = useState(false);
-  const [showSummary, setShowSummary] = useState(false);
-  const [copyState, setCopyState] = useState(null);
+  const [copyState, setCopyState] = useState(null); // 'ok' | 'manual'
+  const [card, setCard] = useState(null); // { state: 'working' | 'ok' | 'error', url?, filename? }
   const sectionRef = useRef(null);
   const focusRef = useRef(null);
-  const summaryRef = useRef(null);
+  const manualRef = useRef(null);
   const moved = useRef(false);
   const [jump, setJump] = useState(0); // occasions re-scroll even when the step stays the same
 
   const complete = STEPS.every((s) => answers[s.key]);
   const firstMissing = STEPS.findIndex((s) => !answers[s.key]);
-  const proposal = useMemo(() => (complete ? compose(answers, occasion) : null), [answers, occasion, complete]);
+  const proposal = useMemo(() => (complete ? compose(answers, context) : null), [answers, context, complete]);
 
   // the suggested dedication follows the emotion until the visitor writes their own
   useEffect(() => {
     if (!dedicationEdited) setDedication(dedicationFor(answers.emotion));
   }, [answers.emotion, dedicationEdited]);
 
-  // fetch the bouquet's photograph as soon as emotion and style are known
+  // fetch the bouquet's image as soon as emotion and style are known
   useEffect(() => {
     if (!answers.emotion || !answers.style) return;
     const p = photo(`${answers.emotion}-${answers.style}`), img = new Image();
     img.sizes = RESULT_SIZES; img.srcset = p.srcSet; img.src = p.src;
   }, [answers.emotion, answers.style]);
+
+  // a saved card belongs to one bouquet and one dedication
+  useEffect(() => { setCard(null); setCopyState(null); }, [proposal?.key, context, dedication]);
+  useEffect(() => () => { if (card?.url) URL.revokeObjectURL(card.url); }, [card]);
 
   // move focus to the new question / result (and bring it into view)
   useEffect(() => {
@@ -114,22 +120,25 @@ export default function BouquetFinder() {
     el.focus({ preventScroll: true });
     const top = sectionRef.current.querySelector('.finder-top');
     const y = top.getBoundingClientRect().top;
-    if (y < 60 || y > window.innerHeight * 0.5) top.scrollIntoView({ block: 'start', behavior: prefersReduced() ? 'auto' : 'smooth' });
+    // from far away (an occasion further down) it jumps, like the menu; close by it glides
+    const far = Math.abs(y) > window.innerHeight * 1.2;
+    if (y < 60 || y > window.innerHeight * 0.5) top.scrollIntoView({ block: 'start', behavior: far || prefersReduced() ? 'auto' : 'smooth' });
   }, [step, jump]);
 
-  // occasions elsewhere on the page open the finder with answers preselected
+  // occasions and the seasonal collection open the finder with answers preselected
   useEffect(() => {
     const onOpen = (ev) => {
-      const id = ev.detail?.occasion;
-      const o = OCCASIONS[id];
-      if (!o) return;
-      const next = { ...EMPTY, ...o.preset };
-      setOccasion(id);
+      const id = ev.detail?.context;
+      const c = CONTEXTS[id];
+      if (!c) return;
+      const next = { ...EMPTY, ...c.preset };
+      setContext(id);
       setAnswers(next);
-      setDedicationEdited(false);
-      setShowSummary(false); setCopyState(null); setEditing(false);
+      setEditing(false);
+      setDedicationEdited(false); // a new bouquet for a new occasion
       const missing = STEPS.findIndex((s) => !next[s.key]);
       moved.current = true;
+      setLocation('#tu-ramo');
       setStep(missing === -1 ? 3 : missing); // the step effect scrolls the progress bar into view
       setJump((j) => j + 1);
     };
@@ -137,15 +146,13 @@ export default function BouquetFinder() {
     return () => window.removeEventListener('aerflora:finder', onOpen);
   }, []);
 
-  const go = (s) => { moved.current = true; setStep(s); setShowSummary(false); setCopyState(null); };
+  const go = (s) => { moved.current = true; setStep(s); };
   const choose = (key, id) => setAnswers((a) => ({ ...a, [key]: id }));
   const next = () => go(step === 2 || (editing && complete) ? 3 : step + 1);
   const back = () => go(Math.max(0, step - 1));
+  // changing one answer keeps the others and the dedication; starting again is a clean slate
   const change = (i) => { setEditing(true); go(i); };
-  const restart = () => {
-    setAnswers(EMPTY); setOccasion(null); setDedicationEdited(false); setEditing(false);
-    go(0);
-  };
+  const restart = () => { setAnswers(EMPTY); setContext(null); setEditing(false); setDedicationEdited(false); go(0); };
 
   const text = proposal ? summary(proposal, dedication) : '';
   const copy = async () => {
@@ -153,14 +160,27 @@ export default function BouquetFinder() {
       await navigator.clipboard.writeText(text);
       setCopyState('ok');
     } catch {
-      // clipboard blocked: select the text so it can be copied by hand
-      summaryRef.current?.select();
+      // clipboard blocked: show the text selected so it can be copied by hand
       setCopyState('manual');
+      requestAnimationFrame(() => manualRef.current?.select());
+    }
+  };
+  const save = async () => {
+    setCard({ state: 'working' });
+    try {
+      const blob = await renderBoardingCard({ proposal, dedication, photoSrc: photo(photoKey(proposal)).src });
+      const filename = cardFilename(proposal);
+      download(blob, filename);
+      setCard({ state: 'ok', url: URL.createObjectURL(blob), filename });
+    } catch {
+      setCard({ state: 'error' });
     }
   };
 
   const current = STEPS[step];
   const nextLabel = step === 2 || (editing && complete) ? 'Ver mi ramo' : 'Siguiente';
+  const picks = STEPS.map((s) => labelOf(s.key, answers[s.key])).filter(Boolean);
+  const ctx = context ? CONTEXTS[context] : null;
 
   return (
     <section className="section finder" id="tu-ramo" ref={sectionRef} aria-labelledby="finder-title">
@@ -171,26 +191,30 @@ export default function BouquetFinder() {
       </header>
 
       <div className="finder-top">
-      {occasion && (
-        <p className="finder-occasion">
-          Para: <strong>{OCCASIONS[occasion].label}</strong>
-          <button type="button" className="link-btn" onClick={() => setOccasion(null)}>Quitar</button>
-        </p>
-      )}
-      <ol className="stepper" aria-label="Progreso">
-        {[...STEPS, { key: 'result', label: 'Tu ramo' }].map((s, i) => {
-          const reachable = i === 3 ? complete : i <= (firstMissing === -1 ? 3 : firstMissing);
-          const value = s.options?.find((o) => o.id === answers[s.key])?.label;
-          return (
-            <li key={s.key} className={`${i === step ? 'is-current' : ''} ${i < 3 && answers[s.key] ? 'is-done' : ''}`}>
-              <button type="button" disabled={!reachable} aria-current={i === step ? 'step' : undefined} onClick={() => (i === 3 ? go(3) : change(i))}>
-                <span className="stepper-num" aria-hidden="true">{i < 3 ? i + 1 : '✿'}</span>
-                <span className="stepper-text"><span>{s.label}</span>{value && <small>{value}</small>}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
+        {ctx && (
+          <p className="finder-occasion">
+            {contextPrefix(ctx)}: <strong>{ctx.label}</strong>
+            <button type="button" className="link-btn" onClick={() => setContext(null)}>Quitar</button>
+          </p>
+        )}
+        <ol className="stepper" aria-label="Progreso">
+          {[...STEPS, { key: 'result', label: 'Tu ramo' }].map((s, i) => {
+            const reachable = i === 3 ? complete : i <= (firstMissing === -1 ? 3 : firstMissing);
+            const value = s.options?.find((o) => o.id === answers[s.key])?.label;
+            return (
+              <li key={s.key} className={`${i === step ? 'is-current' : ''} ${i < 3 && answers[s.key] ? 'is-done' : ''}`}>
+                <button type="button" disabled={!reachable} aria-current={i === step ? 'step' : undefined} onClick={() => (i === 3 ? go(3) : change(i))}>
+                  <span className="stepper-num" aria-hidden="true">{i < 3 ? i + 1 : '✿'}</span>
+                  <span className="stepper-text"><span>{s.label}</span>{value && <small>{value}</small>}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+        {/* phones hide the answers inside the progress bar: a compact line keeps them in sight */}
+        {picks.length > 0 && step < 3 && (
+          <p className="finder-picks"><span>Tu ramo</span>{picks.join(' · ')}</p>
+        )}
       </div>
 
       {step < 3 ? (
@@ -218,7 +242,7 @@ export default function BouquetFinder() {
         <div className="result" key={proposal.key}>
           <ResultPhoto proposal={proposal} key={photoKey(proposal)} />
           <div className="result-copy">
-            <p className="eyebrow">Tu ramo Aerflora{proposal.occasion ? ` · ${proposal.occasion}` : ''}</p>
+            <p className="eyebrow">Tu ramo Aerflora{ctx ? ` · ${ctx.label}` : ''}</p>
             <h3 className="result-name" ref={focusRef} tabIndex={-1}>{proposal.name}</h3>
             <p className="result-desc">{proposal.description}</p>
 
@@ -226,7 +250,7 @@ export default function BouquetFinder() {
               {STEPS.map((s, i) => (
                 <li key={s.key}>
                   <span>{s.label}</span>
-                  <strong>{s.options.find((o) => o.id === answers[s.key]).label}</strong>
+                  <strong>{labelOf(s.key, answers[s.key])}</strong>
                   <button type="button" className="link-btn" onClick={() => change(i)} aria-label={`Cambiar ${s.label.toLowerCase()}`}>Cambiar</button>
                 </li>
               ))}
@@ -247,27 +271,32 @@ export default function BouquetFinder() {
             <label className="dedication">
               <span>Tu dedicatoria</span>
               <textarea rows={2} maxLength={160} value={dedication} onChange={(e) => { setDedication(e.target.value); setDedicationEdited(true); }} />
-              <small aria-live="polite">{dedication.length}/160</small>
+              <small>{dedication.length}/160</small>
             </label>
 
             <div className="result-actions">
-              {hasRealContact
-                ? <a className="btn btn-primary" href={mailto(`Consulta: ramo «${proposal.name}»`, text)}>Consultar este ramo</a>
-                : <button type="button" className="btn btn-primary" aria-expanded={showSummary} aria-controls="finder-summary" onClick={() => { setShowSummary((v) => !v); setCopyState(null); }}>Consultar este ramo</button>}
-              <button type="button" className="btn btn-outline" onClick={restart}>Volver a crear</button>
+              <button type="button" className="btn btn-primary" onClick={save} disabled={card?.state === 'working'} aria-describedby="card-hint">
+                {card?.state === 'working' ? 'Preparando tu tarjeta…' : 'Guardar mi ramo'}
+              </button>
+              <button type="button" className="btn btn-outline" onClick={copy}>Copiar mi propuesta</button>
+              <button type="button" className="btn btn-text" onClick={restart}>Volver a crear</button>
             </div>
+            <p className="result-hint" id="card-hint">Te llevas tu ramo y tu dedicatoria en una tarjeta de embarque floral (PNG).</p>
 
-            {(showSummary || hasRealContact) && (
-              <div className="summary" id="finder-summary">
-                {!hasRealContact && (
-                  <p className="summary-note">Aún no hemos publicado nuestro correo de encargos. Copia tu propuesta y envíanosla cuando quieras: la tendremos lista para preparar tu ramo.</p>
-                )}
-                <textarea ref={summaryRef} className="summary-text" readOnly rows={6} value={text} aria-label="Resumen de tu propuesta" />
-                <button type="button" className="btn btn-small btn-outline" onClick={copy}>Copiar mi propuesta</button>
-                <p className="summary-status" role="status">
-                  {copyState === 'ok' && 'Propuesta copiada. Ya puedes pegarla donde quieras.'}
-                  {copyState === 'manual' && 'No hemos podido copiarla automáticamente: el texto está seleccionado, cópialo con Ctrl+C o mantén pulsado.'}
-                </p>
+            <div className="result-status" role="status">
+              {copyState === 'ok' && <p className="confirm"><span aria-hidden="true">✓</span> Propuesta copiada. Ya puedes pegarla donde quieras.</p>}
+              {card?.state === 'ok' && (
+                <div className="confirm confirm-card">
+                  <img src={card.url} alt={`Tarjeta de embarque floral del ramo ${proposal.name}`} width="108" height="172" />
+                  <p><span aria-hidden="true">✓</span> Tarjeta guardada como <strong>{card.filename}</strong>. <a href={card.url} download={card.filename}>Descargarla de nuevo</a></p>
+                </div>
+              )}
+              {card?.state === 'error' && <p className="confirm confirm-error">No hemos podido preparar la tarjeta en este navegador. Prueba de nuevo o copia tu propuesta.</p>}
+            </div>
+            {copyState === 'manual' && (
+              <div className="manual-copy">
+                <p>Tu navegador no nos deja copiar directamente: el texto está seleccionado, cópialo con Ctrl+C o mantén pulsado.</p>
+                <textarea ref={manualRef} readOnly rows={6} value={text} aria-label="Resumen de tu propuesta" />
               </div>
             )}
           </div>

@@ -70,9 +70,9 @@ export const STYLES = [
     line: 'Una cúpula de pétalos redondos envuelta en papel de seda.',
   },
   {
-    id: 'minimalista', label: 'Minimalista', hint: 'Pocas flores, mucho espacio',
+    id: 'minimalista', label: 'Minimalista', hint: 'Pocas variedades, mucho espacio',
     extras: ['cala', 'olivo'], accent: ['Blanco hueso', '#efe9dd'],
-    line: 'Pocos tallos, líneas limpias y espacio para que cada flor respire.',
+    line: 'Pocas variedades, líneas limpias y espacio para que cada flor respire.',
   },
 ];
 
@@ -81,8 +81,6 @@ export const SIZES = [
   { id: 'abrazo', label: 'Un abrazo', hint: 'Unos 15 tallos', stems: 15, height: 'unos 45 cm', format: 'ramo mediano', line: 'Un ramo que se sostiene con las dos manos, como un abrazo.' },
   { id: 'celebracion', label: 'Una gran celebración', hint: 'Más de 30 tallos', stems: 32, height: 'unos 60 cm', format: 'gran ramo', line: 'Un ramo generoso que llena la habitación y la ocasión.' },
 ];
-// the photographs show every emotion × style at this size; the chosen size is told in words
-export const PHOTO_SIZE = 'abrazo';
 
 const NAMES = {
   amor: { silvestre: 'Corazón de pradera', romantico: 'Abrazo de nube', minimalista: 'Un solo latido' },
@@ -92,13 +90,16 @@ const NAMES = {
   porquesi: { silvestre: 'Paseo sin prisa', romantico: 'Sorpresa de algodón', minimalista: 'Porque sí' },
 };
 
-// occasions from the rest of the page preselect some answers
-export const OCCASIONS = {
-  cumpleanos: { label: 'Cumpleaños', preset: { emotion: 'alegria' } },
-  aniversarios: { label: 'Aniversario', preset: { emotion: 'amor' } },
-  bodas: { label: 'Boda', preset: { emotion: 'amor', size: 'celebracion' } },
-  detalles: { label: 'Pequeño detalle', preset: { emotion: 'porquesi', size: 'detalle' } },
+// occasions and the seasonal collection open the finder with some answers chosen;
+// the context stays visible in the journey, the result and the saved card
+export const CONTEXTS = {
+  cumpleanos: { kind: 'occasion', label: 'Cumpleaños', preset: { emotion: 'alegria' } },
+  aniversarios: { kind: 'occasion', label: 'Aniversario', preset: { emotion: 'amor' } },
+  bodas: { kind: 'occasion', label: 'Boda', preset: { emotion: 'amor', size: 'celebracion' } },
+  detalles: { kind: 'occasion', label: 'Pequeño detalle', preset: { emotion: 'porquesi', size: 'detalle' } },
+  temporada: { kind: 'collection', label: 'Ramos de temporada', preset: { style: 'silvestre' } },
 };
+export const contextPrefix = (c) => (c.kind === 'collection' ? 'Colección' : 'Para');
 
 const find = (list, id) => list.find((x) => x.id === id);
 
@@ -107,18 +108,17 @@ export function dedicationFor(emotionId) {
 }
 
 /** Builds the proposal for a complete set of answers. */
-export function compose({ emotion: e, style: s, size: z }, occasionId) {
+export function compose({ emotion: e, style: s, size: z }, contextId) {
   const emotion = find(EMOTIONS, e), style = find(STYLES, s), size = find(SIZES, z);
   if (!emotion || !style || !size) return null;
   let flowers = [...new Set([...emotion.flowers, ...style.extras])];
   if (size.id === 'detalle') flowers = flowers.slice(0, 3);
   if (size.id === 'celebracion') flowers = [...new Set([...flowers, style.id === 'minimalista' ? 'eucalipto' : 'paniculata', 'eucalipto'])];
   const palette = [...emotion.palette, style.accent].map(([name, hex]) => ({ name, hex }));
-  const occasion = OCCASIONS[occasionId];
   return {
     key: `${e}-${s}-${z}`,
     name: NAMES[e][s],
-    occasion: occasion?.label ?? null,
+    context: CONTEXTS[contextId] ?? null,
     emotion, style, size, flowers, palette,
     description: `${emotion.line} ${style.line} ${size.line}`,
   };
@@ -127,7 +127,7 @@ export function compose({ emotion: e, style: s, size: z }, occasionId) {
 export function summary(p, dedication) {
   return [
     `Mi propuesta Aerflora: «${p.name}»`,
-    p.occasion ? `Ocasión: ${p.occasion}` : null,
+    p.context ? `${p.context.kind === 'collection' ? 'Colección' : 'Ocasión'}: ${p.context.label}` : null,
     `Quiero expresar: ${p.emotion.label} · Estilo: ${p.style.label} · Tamaño: ${p.size.label} (${p.size.hint.toLowerCase()})`,
     `Flores: ${p.flowers.map((f) => FLOWERS[f]).join(', ')}`,
     `Paleta: ${p.palette.map((c) => c.name).join(', ')}`,

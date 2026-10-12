@@ -12,7 +12,10 @@ export default function Footer() {
         <a href="#nosotros">Sobre Aerflora</a>
         <a href="#contacto">Contacto</a>
       </nav>
-      <p className="footer-meta">© 2026 Aerflora · Floristería</p>
+      <div className="footer-meta">
+        <p>© 2026 Aerflora · Floristería imaginaria</p>
+        <p>Demo creada por Codecraft</p>
+      </div>
     </footer>
   );
 }
