@@ -10,6 +10,7 @@
     "frames:3d": "node scripts/render-3d-frames.mjs",
     "images": "node scripts/render-stills.mjs",
     "photos": "node scripts/render-bouquets.mjs",
+    "share": "node scripts/render-share.mjs",
     "frames:placeholder": "node scripts/make-placeholder-frames.mjs",
     "frames:extract": "node scripts/extract-frames.mjs"
   },

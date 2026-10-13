@@ -10,7 +10,7 @@
 | Pósteres (fallback estático / movimiento reducido) | Se derivan automáticamente del primer y del último fotograma. |
 | Recursos de la plantilla Scrolltide «Aerflora» | **No disponibles.** Son contenido Premium; no se han extraído. Si se compra el acceso y la licencia lo permite, se integran con el script de extracción (abajo). |
 
-La web muestra una etiqueta «Secuencia provisional» mientras `public/frames/manifest.json` tenga `"provisional": true`. Al extraer la secuencia real, el script pone `false` y la etiqueta desaparece.
+`public/frames/manifest.json` marca la secuencia con `"provisional": true` mientras sea el render 3D; al extraer la secuencia real, el script pone `false`.
 
 ## Qué sigue dependiendo de recursos
 
@@ -38,7 +38,7 @@ La escena 3D ya resuelve la geometría, la luz, las oclusiones y el movimiento. 
   1. 0–65 %: avance por el pasillo desde la fila 32 hasta quedar a ~1,5 m de una puerta doble verde salvia con dos ojos de buey.
   2. 65–70 %: pausa breve frente a la puerta cerrada.
   3. 70–92 %: la puerta doble se abre hacia fuera; entra luz cálida y una ráfaga de pétalos hacia la cámara; al fondo, un cerezo en flor sobre un mar de nubes.
-  4. 92–100 %: ligero empuje hacia la puerta, plano casi fijo (aquí aparece «Welcome aboard.»).
+  4. 92–100 %: ligero empuje hacia la puerta, plano casi fijo (aquí aparece «Bienvenidos a bordo.»).
 - **Opcional:** una versión vertical 9:16 del mismo plano (`--portrait`). Si no existe, se recorta el centro del plano horizontal.
 
 ### Cómo producirlo con un generador de vídeo (Veo, Kling, Runway…)

@@ -20,7 +20,7 @@ export default function ScrollScene({ manifest, ready, onProgress, onReady, onFa
   const painterRef = useRef(null);
   const [streamed, setStreamed] = useState(0);
 
-  // 1. load the sequence (runs behind the loader)
+  // 1. load the sequence (the page opens with the first frame; the rest streams in)
   useEffect(() => {
     const set = pickSet(manifest);
     const seq = new FrameSequence({
@@ -48,7 +48,7 @@ export default function ScrollScene({ manifest, ready, onProgress, onReady, onFa
     };
   }, [manifest]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 2. scroll → frame + texts, once the essential frames are in
+  // 2. scroll → frame + texts, from the first frame on (missing frames fall back to the nearest one)
   useLayoutEffect(() => {
     if (!ready) return;
     const last = manifest.frameCount - 1;
