@@ -10,7 +10,6 @@ export default function Footer() {
         <a href="#flores">Ramos y flores</a>
         <a href="#ocasiones">Ocasiones</a>
         <a href="#nosotros">Sobre Aerflora</a>
-        <a href="#contacto">Contacto</a>
       </nav>
       <div className="footer-meta">
         <p>© 2026 Aerflora · Floristería imaginaria</p>

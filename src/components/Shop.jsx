@@ -147,11 +147,11 @@ export default function Shop() {
         </div>
       </section>
 
-      <section className="section contact" id="contacto" aria-labelledby="contacto-title">
+      <section className="section contact" id="llevate-tu-ramo" aria-labelledby="llevate-title">
         <img className="contact-bg" src={`${IMG}contacto.webp`} alt="" loading="lazy" decoding="async" width="900" height="1125" />
         <div className="contact-card">
-          <p className="eyebrow">Contacto</p>
-          <h2 className="section-title" id="contacto-title">Tu ramo, listo para embarcar</h2>
+          <p className="eyebrow">Llévate tu ramo</p>
+          <h2 className="section-title" id="llevate-title">Listo para embarcar</h2>
           <p className="section-intro">
             Crea tu propuesta floral en menos de un minuto y guárdala como tarjeta de embarque: tus flores,
             tu paleta y tu dedicatoria, listas para regalar o compartir.
