@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 
+// the closing section ("Llévate tu ramo") is not in the menu: "Encuentra tu ramo" already leads there
 const LINKS = [
   ['#flores', 'Colecciones'],
   ['#ocasiones', 'Ocasiones'],
   ['#nosotros', 'Nosotros'],
-  ['#contacto', 'Contacto'],
 ];
-const SECTIONS = ['tu-ramo', 'flores', 'ocasiones', 'nosotros', 'contacto'];
+const SECTIONS = ['tu-ramo', 'flores', 'ocasiones', 'nosotros'];
 
-// Transparent over the cabin; once the journey is behind us it becomes a
-// solid cream bar so it never sits on top of the shop content. The link of
-// the section in view is marked as the current location.
+// Floats in an ivory haze over the cabin; once the journey is behind us it
+// becomes a solid cream bar so it never sits on top of the shop content. The
+// link of the section in view is marked as the current location.
 export default function Nav() {
   const [open, setOpen] = useState(false);
   const [solid, setSolid] = useState(false);

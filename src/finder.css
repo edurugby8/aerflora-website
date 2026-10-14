@@ -17,7 +17,7 @@
     radial-gradient(50% 35% at 90% 30%, rgba(243, 215, 221, 0.45), transparent 70%),
     var(--cream);
 }
-.finder .section-head { margin-bottom: clamp(28px, 4vw, 44px); }
+.finder .section-head { margin-bottom: clamp(24px, 3.2vw, 36px); }
 .finder-top { scroll-margin-top: calc(var(--header-h) + 16px); display: grid; justify-items: center; gap: 14px; margin-bottom: clamp(24px, 4vw, 40px); }
 .finder-top .stepper { margin-bottom: 0; width: 100%; }
 .finder-occasion { display: inline-flex; align-items: center; gap: 10px; margin-top: 18px; padding: 4px 8px 4px 16px; border-radius: 999px; background: #fff; box-shadow: 0 1px 0 var(--line); font-size: 14px; }

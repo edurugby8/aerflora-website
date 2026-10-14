@@ -10,7 +10,7 @@ Aerflora es una floristería imaginaria: una **demo de portfolio creada por Code
 - **Encuentra tu ramo** (`#tu-ramo`): atelier en tres pasos (emoción, estilo, tamaño) que compone una propuesta con nombre, descripción, flores, paleta, imagen del ramo y dedicatoria editable, y la guarda como tarjeta de embarque floral (PNG). Cada elección se puede cambiar desde el resultado sin perder las demás ni la dedicatoria escrita. Reglas locales en `src/lib/bouquets.js`; sin servidor.
 - **Ramos y flores** (`#flores`): colecciones Cielo Abierto (temporada, abre el atelier con el estilo silvestre ya elegido), Nube Eterna (preservadas) y Puerta del Cielo (composiciones especiales). Estas dos no son ramos que el atelier pueda componer, así que su tarjeta despliega una breve presentación de la colección.
 - **Flores para cada ocasión** (`#ocasiones`): cumpleaños, aniversarios, bodas y pequeños detalles abren el atelier con la ocasión preseleccionada (emoción y, en bodas y pequeños detalles, tamaño); la ocasión acompaña al resultado y a la tarjeta.
-- **Sobre Aerflora** (`#nosotros`) y **Contacto** (`#contacto`): el cierre de la demo invita a crear y guardar la propuesta, con la nota «Experiencia de demostración. No se realizan pedidos reales». El pie dice «Demo creada por Codecraft».
+- **Sobre Aerflora** (`#nosotros`) y **Llévate tu ramo** (`#llevate-tu-ramo`): el cierre de la demo invita a crear y guardar la propuesta, con la nota «Experiencia de demostración. No se realizan pedidos reales». No está en el menú, porque «Encuentra tu ramo» ya lleva al atelier. El pie dice «Demo creada por Codecraft».
 
 **Imágenes de los ramos:** son recreaciones 3D, no fotografías, y la web lo indica junto al resultado. `scripts/render-bouquets.mjs` (`npm run photos`) las renderiza con un trazador de rayos (three-gpu-pathtracer) en un estudio virtual: fondo continuo de papel, softbox, contraluz, cartón de relleno y cámara física con desenfoque real. Las flores (`scripts/scene3d/botany.js`) se modelan pétalo a pétalo a escala real y el ramo se monta con las mismas reglas que la web (`compose()` en `src/lib/bouquets.js`):
 
@@ -18,7 +18,7 @@ Aerflora es una floristería imaginaria: una **demo de portfolio creada por Code
 - 7 imágenes para las colecciones y las ocasiones.
 - Cada imagen en 960×1200 y en 480×600 (`-sm`), en `public/images/ramos/`.
 
-Las imágenes de «Sobre Aerflora» y «Contacto» salen de la escena 3D de la cabina (`npm run images`).
+Las imágenes de «Sobre Aerflora» y «Llévate tu ramo» salen de la escena 3D de la cabina (`npm run images`).
 
 **Tarjeta de embarque floral:** «Guardar mi ramo» dibuja en un `<canvas>` una tarjeta de 1080×1720 con la marca, el nombre y la imagen del ramo, emoción, estilo y tamaño, la paleta, la dedicatoria y «Hay cosas que se dicen mejor con flores», y la descarga como PNG (`src/lib/boardingCard.js`, sin dependencias). Solo usa recursos del propio sitio: si las fuentes no han cargado en 2,5 s dibuja con fuentes del sistema, y si la imagen falla, con un degradado de la paleta. Los textos se miden y ajustan para que nada se corte. «Copiar mi propuesta» copia el mismo resumen en texto; ambas acciones confirman el resultado de forma accesible.
 
